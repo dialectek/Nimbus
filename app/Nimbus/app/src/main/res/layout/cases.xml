@@ -1,0 +1,82 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/white"
+    android:orientation="vertical"
+    tools:context="com.dialectek.even_the_odds.Cases">
+
+    <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        android:orientation="vertical"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent">
+
+        <TextView android:layout_height="wrap_content"
+                android:layout_margin="4px"
+                android:layout_width="fill_parent"
+                android:editable="false"
+                android:textSize="18sp"
+                android:text="Server:"></TextView>
+        <Spinner android:layout_height="wrap_content"
+                android:id="@+id/server_spinner"
+                android:layout_margin="4px"
+                android:layout_width="fill_parent"></Spinner>
+        <LinearLayout
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:orientation="horizontal">
+                <Button android:layout_height="wrap_content"
+                        android:id="@+id/connect_server_button"
+                        android:layout_margin="4px"
+                        android:layout_width="wrap_content"
+                        android:text="Connect"></Button>
+                <Button android:layout_height="wrap_content"
+                        android:id="@+id/add_server_button"
+                        android:layout_margin="4px"
+                        android:layout_width="wrap_content"
+                        android:text="Add"></Button>
+                <Button android:layout_height="wrap_content"
+                        android:id="@+id/remove_server_button"
+                        android:layout_margin="4px"
+                        android:layout_width="wrap_content"
+                        android:text="Remove"></Button>
+        </LinearLayout>
+
+        <TextView android:layout_height="wrap_content"
+                android:layout_marginLeft="4px"
+                android:layout_marginTop="40px"
+                android:layout_marginBottom="4px"
+                android:layout_width="fill_parent"
+                android:editable="false"
+                android:textSize="18sp"
+                android:text="Case:"></TextView>
+        <Spinner android:layout_height="wrap_content"
+                android:id="@+id/case_spinner"
+                android:layout_margin="4px" 
+                android:layout_width="fill_parent"></Spinner>
+        <LinearLayout
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:orientation="horizontal">
+                <Button android:layout_height="wrap_content"
+                        android:id="@+id/new_case_button"
+                        android:layout_margin="4px"
+                        android:layout_width="wrap_content"
+                        android:text="New"></Button>
+                <Button android:layout_height="wrap_content"
+                        android:id="@+id/open_case_button"
+                        android:layout_margin="4px"
+                        android:layout_width="wrap_content"
+                        android:text="Open"></Button>
+                <Button android:layout_height="wrap_content"
+                        android:id="@+id/jury_button"
+                        android:layout_margin="4px"
+                        android:layout_width="wrap_content"
+                        android:text="Jury"></Button>
+        </LinearLayout>
+
+    </LinearLayout>
+
+</RelativeLayout>

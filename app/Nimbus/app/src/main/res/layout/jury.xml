@@ -1,0 +1,86 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/white"
+    android:orientation="vertical"
+    tools:context="com.dialectek.even_the_odds.Jury">
+
+    <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        android:orientation="vertical"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent">
+
+        <TextView android:layout_height="wrap_content"
+                android:id="@+id/jury_case_text"
+                android:layout_margin="4px"
+                android:layout_width="fill_parent"
+                android:editable="false"
+                android:textSize="18sp"
+                android:text="Jury:"></TextView>
+        <Spinner android:layout_height="wrap_content"
+                android:id="@+id/juror_spinner"
+                android:layout_margin="4px" 
+                android:layout_width="fill_parent"></Spinner>
+        <View
+            android:layout_width="fill_parent"
+            android:layout_height="2dp"
+            android:visibility="visible"
+            android:background="@android:color/black"/>
+        <TextView android:layout_height="wrap_content"
+                android:layout_margin="4px"
+                android:layout_width="fill_parent"
+                android:editable="false"
+                android:textSize="16sp"
+                android:text="Juror name:"></TextView>
+        <EditText android:layout_height="wrap_content"
+                android:id="@+id/juror_name_text"
+                android:layout_margin="4px"
+                android:layout_width="fill_parent"
+                android:editable="true"
+                android:textSize="16sp"
+                android:lines="1"
+                android:minLines="1"
+                android:maxLines="1"
+                android:text=""></EditText>
+        <TextView android:layout_height="wrap_content"
+                android:layout_margin="4px"
+                android:layout_width="fill_parent"
+                android:editable="false"
+                android:textSize="16sp"
+                android:text="Juror status:"></TextView>
+        <EditText android:layout_height="wrap_content"
+                android:id="@+id/juror_status_text"
+                android:layout_margin="4px"
+                android:layout_width="fill_parent"
+                android:editable="true"
+                android:textSize="16sp"
+                android:lines="5"
+                android:minLines="1"
+                android:maxLines="10"
+                android:inputType="textMultiLine|textCapSentences"/>
+        <LinearLayout
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:orientation="horizontal">
+                <Button android:layout_height="wrap_content"
+                        android:id="@+id/add_juror_button"
+                        android:layout_margin="4px"
+                        android:layout_width="wrap_content"
+                        android:text="Add"></Button>
+                <Button android:layout_height="wrap_content"
+                        android:id="@+id/update_juror_status_button"
+                        android:layout_margin="4px"
+                        android:layout_width="wrap_content"
+                        android:text="Update"></Button>
+                <Button android:layout_height="wrap_content"
+                        android:id="@+id/remove_juror_button"
+                        android:layout_margin="4px"
+                        android:layout_width="wrap_content"
+                        android:text="Remove"></Button>
+        </LinearLayout>
+
+    </LinearLayout>
+
+</RelativeLayout>

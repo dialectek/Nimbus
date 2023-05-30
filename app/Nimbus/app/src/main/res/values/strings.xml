@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Even (the odds)</string>
+    <string name="message_seekbar">Setting Seekbar max to %d sec</string>
+    <string name="eula_title">License</string>
+    <string name="eula_accept">Accept</string>
+    <string name="eula_refuse">Refuse</string>
+</resources>
