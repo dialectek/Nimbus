@@ -1,7 +1,5 @@
 <resources>
-    <string name="app_name">Even (the odds)</string>
-    <string name="message_seekbar">Setting Seekbar max to %d sec</string>
-    <string name="eula_title">License</string>
-    <string name="eula_accept">Accept</string>
-    <string name="eula_refuse">Refuse</string>
+    <string name="app_name">Nimbus</string>
+
+    <string name="ble_uuid">CDB7950D-73F1-4D4D-8E47-C090502DBD63</string>
 </resources>
