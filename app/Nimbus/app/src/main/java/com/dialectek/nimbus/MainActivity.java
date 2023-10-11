@@ -2,7 +2,9 @@ package com.dialectek.nimbus;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
+import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.le.AdvertiseCallback;
 import android.bluetooth.le.AdvertiseData;
@@ -13,7 +15,11 @@ import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanFilter;
 import android.bluetooth.le.ScanResult;
 import android.bluetooth.le.ScanSettings;
+import android.content.DialogInterface;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.ParcelUuid;
@@ -29,6 +35,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import static android.Manifest.permission.ACCESS_FINE_LOCATION;
+import static android.Manifest.permission.CAMERA;
+
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
     private TextView mText;
@@ -38,44 +47,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private BluetoothLeScanner mBluetoothLeScanner;
     private Handler mHandler = new Handler();
 
-    private ScanCallback mScanCallback = new ScanCallback() {
-        @Override
-        public void onScanResult(int callbackType, ScanResult result) {
-            super.onScanResult(callbackType, result);
-            if (ActivityCompat.checkSelfPermission(getBaseContext(), android.Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-                // TODO: Consider calling
-                //    ActivityCompat#requestPermissions
-                // here to request the missing permissions, and then overriding
-                //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                //                                          int[] grantResults)
-                // to handle the case where the user grants the permission. See the documentation
-                // for ActivityCompat#requestPermissions for more details.
-                return;
-            }
-            if (result == null
-                    || result.getDevice() == null
-                    || TextUtils.isEmpty(result.getDevice().getName()))
-                return;
-
-            StringBuilder builder = new StringBuilder(result.getDevice().getName());
-
-            builder.append("\n").append(new String(result.getScanRecord().getServiceData(result.getScanRecord().getServiceUuids().get(0)), Charset.forName("UTF-8")));
-
-            mText.setText(builder.toString());
-        }
-
-        @Override
-        public void onBatchScanResults(List<ScanResult> results) {
-            super.onBatchScanResults(results);
-        }
-
-        @Override
-        public void onScanFailed(int errorCode) {
-            Log.e("BLE", "Discovery onScanFailed: " + errorCode);
-            super.onScanFailed(errorCode);
-        }
-    };
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -84,16 +55,50 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mText = (TextView) findViewById(R.id.text);
         mDiscoverButton = (Button) findViewById(R.id.discover_btn);
         mAdvertiseButton = (Button) findViewById(R.id.advertise_btn);
-
+        mAdvertiseButton.setEnabled(false);
+        mDiscoverButton.setEnabled(false);
         mDiscoverButton.setOnClickListener(this);
         mAdvertiseButton.setOnClickListener(this);
 
         mBluetoothLeScanner = BluetoothAdapter.getDefaultAdapter().getBluetoothLeScanner();
 
-        if (!BluetoothAdapter.getDefaultAdapter().isMultipleAdvertisementSupported()) {
-            Toast.makeText(this, "Multiple advertisement not supported", Toast.LENGTH_SHORT).show();
-            mAdvertiseButton.setEnabled(false);
-            mDiscoverButton.setEnabled(false);
+        String[] permissions = new String[] {
+                android.Manifest.permission.ACCESS_FINE_LOCATION,
+                android.Manifest.permission.BLUETOOTH_SCAN,
+                Manifest.permission.BLUETOOTH_CONNECT,
+                Manifest.permission.BLUETOOTH_ADVERTISE };
+        ActivityCompat.requestPermissions(this, permissions, 2);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == 2) {
+            if (grantResults.length >= 4) {
+                boolean locationGranted = grantResults[0] == PackageManager.PERMISSION_GRANTED;
+                if (!locationGranted) {
+                    Toast.makeText(this, "Location permission denied", Toast.LENGTH_SHORT).show();
+                }
+                boolean scanGranted = grantResults[1] == PackageManager.PERMISSION_GRANTED;
+                if (!scanGranted) {
+                    Toast.makeText(this, "Scan permission denied", Toast.LENGTH_SHORT).show();
+                }
+                boolean connectGranted = grantResults[2] == PackageManager.PERMISSION_GRANTED;
+                if (!connectGranted) {
+                    Toast.makeText(this, "Connect permission denied", Toast.LENGTH_SHORT).show();
+                }
+                boolean advertiseGranted = grantResults[3] == PackageManager.PERMISSION_GRANTED;
+                if (!advertiseGranted) {
+                    Toast.makeText(this, "Advertise permission denied", Toast.LENGTH_SHORT).show();
+                }
+                if (!BluetoothAdapter.getDefaultAdapter().isMultipleAdvertisementSupported()) {
+                    Toast.makeText(this, "Multiple advertisement not supported", Toast.LENGTH_SHORT).show();
+                }
+                if (locationGranted && scanGranted && connectGranted && advertiseGranted) {
+                    mAdvertiseButton.setEnabled(true);
+                    mDiscoverButton.setEnabled(true);
+                }
+            }
         }
     }
 
@@ -109,34 +114,36 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
                 .build();
 
-        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
-            return;
-        }
-        mBluetoothLeScanner.startScan(filters, settings, mScanCallback);
-
-        mHandler.postDelayed(new Runnable() {
+        ScanCallback scanCallback = new ScanCallback() {
             @Override
-            public void run() {
-                if (ActivityCompat.checkSelfPermission(getBaseContext(), android.Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
-                    // TODO: Consider calling
-                    //    ActivityCompat#requestPermissions
-                    // here to request the missing permissions, and then overriding
-                    //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                    //                                          int[] grantResults)
-                    // to handle the case where the user grants the permission. See the documentation
-                    // for ActivityCompat#requestPermissions for more details.
+            public void onScanResult(int callbackType, ScanResult result) {
+                super.onScanResult(callbackType, result);
+                if (result == null
+                        || result.getDevice() == null
+                        || TextUtils.isEmpty(result.getDevice().getName()))
                     return;
-                }
-                mBluetoothLeScanner.stopScan(mScanCallback);
+
+                StringBuilder builder = new StringBuilder(result.getDevice().getName());
+
+                //builder.append("\n").append(new String(result.getScanRecord().getServiceData(result.getScanRecord().getServiceUuids().get(0)), Charset.forName("UTF-8")));
+
+                mText.setText(builder.toString());
             }
-        }, 10000);
+
+            @Override
+            public void onBatchScanResults(List<ScanResult> results) {
+                super.onBatchScanResults(results);
+            }
+
+            @Override
+            public void onScanFailed(int errorCode) {
+                Toast.makeText(getBaseContext(), "Scan failed: " + errorCode, Toast.LENGTH_SHORT).show();
+                //Log.e("BLE", "Discovery onScanFailed: " + errorCode);
+                super.onScanFailed(errorCode);
+            }
+        };
+
+        mBluetoothLeScanner.startScan(filters, settings, scanCallback);
     }
 
     private void advertise() {
@@ -152,8 +159,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         AdvertiseData data = new AdvertiseData.Builder()
                 .setIncludeDeviceName(true)
+                .setIncludeTxPowerLevel(false)
                 .addServiceUuid(pUuid)
-                .addServiceData(pUuid, "Data".getBytes(Charset.forName("UTF-8")))
+                //.addServiceData(pUuid, "Data".getBytes(Charset.forName("UTF-8")))
                 .build();
 
         AdvertiseCallback advertisingCallback = new AdvertiseCallback() {
@@ -164,21 +172,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
             @Override
             public void onStartFailure(int errorCode) {
-                Log.e("BLE", "Advertising onStartFailure: " + errorCode);
+                Toast.makeText(getBaseContext(), "Advertising failed: " + errorCode, Toast.LENGTH_SHORT).show();
+                //Log.e("BLE", "Advertising onStartFailure: " + errorCode);
                 super.onStartFailure(errorCode);
             }
         };
 
-        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.BLUETOOTH_ADVERTISE) != PackageManager.PERMISSION_GRANTED) {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
-            return;
-        }
         advertiser.startAdvertising(settings, data, advertisingCallback);
     }
 
