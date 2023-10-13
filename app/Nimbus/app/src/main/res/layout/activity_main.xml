@@ -11,13 +11,19 @@
         android:id="@+id/advertise_btn"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Advertise"/>
+        android:text="Start Advertise"/>
 
     <Button
         android:id="@+id/discover_btn"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Discover" />
+        android:text="Start Discover" />
+
+    <Button
+        android:id="@+id/clear_text_btn"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Clear Discovered" />
 
     <TextView
         android:id="@+id/text"
