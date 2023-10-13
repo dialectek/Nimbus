@@ -3,7 +3,9 @@
 package com.dialectek.nimbus;
 
 import android.Manifest;
+import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothManager;
 import android.bluetooth.le.AdvertiseCallback;
 import android.bluetooth.le.AdvertiseData;
 import android.bluetooth.le.AdvertiseSettings;
@@ -13,6 +15,8 @@ import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanFilter;
 import android.bluetooth.le.ScanResult;
 import android.bluetooth.le.ScanSettings;
+import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Handler;
@@ -26,7 +30,9 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
+import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
@@ -35,9 +41,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private TextView mText;
     private Button mAdvertiseButton;
     private Button mDiscoverButton;
-
-    private BluetoothLeScanner mBluetoothLeScanner;
-    private Handler mHandler = new Handler();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -51,15 +54,42 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mDiscoverButton.setEnabled(false);
         mDiscoverButton.setOnClickListener(this);
         mAdvertiseButton.setOnClickListener(this);
+    }
 
-        mBluetoothLeScanner = BluetoothAdapter.getDefaultAdapter().getBluetoothLeScanner();
+    @Override
+    protected void onStart() {
+        super.onStart();
+        requestPermissions();
+        requestEnableBluetooth();
+    }
 
-        String[] permissions = new String[] {
+    private void requestPermissions() {
+        String[] permissions = new String[]{
                 android.Manifest.permission.ACCESS_FINE_LOCATION,
                 android.Manifest.permission.BLUETOOTH_SCAN,
                 Manifest.permission.BLUETOOTH_CONNECT,
-                Manifest.permission.BLUETOOTH_ADVERTISE };
+                Manifest.permission.BLUETOOTH_ADVERTISE};
         ActivityCompat.requestPermissions(this, permissions, 2);
+    }
+
+    private void requestEnableBluetooth() {
+        BluetoothManager bluetoothManager = (BluetoothManager)getSystemService(Context.BLUETOOTH_SERVICE);
+        if (!bluetoothManager.getAdapter().isEnabled()) {
+            Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+            startActivityForResult(enableBtIntent, 1);
+        }
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == 1) {
+            if (resultCode != Activity.RESULT_OK) {
+                mAdvertiseButton.setEnabled(false);
+                mDiscoverButton.setEnabled(false);
+                Toast.makeText(this, "Bluetooth disabled", Toast.LENGTH_SHORT).show();
+            }
+        }
     }
 
     @Override
@@ -95,8 +125,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     private void discover() {
-        List<ScanFilter> filters = new ArrayList<ScanFilter>();
+        BluetoothLeScanner bluetoothLeScanner = BluetoothAdapter.getDefaultAdapter().getBluetoothLeScanner();
 
+        List<ScanFilter> filters = new ArrayList<ScanFilter>();
         ScanFilter filter = new ScanFilter.Builder()
                 .setServiceUuid(new ParcelUuid(UUID.fromString(getString(R.string.ble_uuid))))
                 .build();
@@ -110,16 +141,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             @Override
             public void onScanResult(int callbackType, ScanResult result) {
                 super.onScanResult(callbackType, result);
-                if (result == null
-                        || result.getDevice() == null
-                        || TextUtils.isEmpty(result.getDevice().getName()))
-                    return;
-
-                StringBuilder builder = new StringBuilder(result.getDevice().getName());
-
-                //builder.append("\n").append(new String(result.getScanRecord().getServiceData(result.getScanRecord().getServiceUuids().get(0)), Charset.forName("UTF-8")));
-
-                mText.setText(builder.toString());
+                if (result != null) {
+                    StringBuilder builder = new StringBuilder(new String(result.getScanRecord().getServiceData(result.getScanRecord().getServiceUuids().get(0)), Charset.forName("UTF-8")));
+                    mText.append(new Date() + ": " + builder.toString() + "\n");
+                }
             }
 
             @Override
@@ -135,7 +160,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
         };
 
-        mBluetoothLeScanner.startScan(filters, settings, scanCallback);
+        try {
+            bluetoothLeScanner.startScan(filters, settings, scanCallback);
+        } catch(Exception e) {
+            Toast.makeText(getBaseContext(), "Cannot start scan: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void advertise() {
@@ -150,10 +179,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         ParcelUuid pUuid = new ParcelUuid(UUID.fromString(getString(R.string.ble_uuid)));
 
         AdvertiseData data = new AdvertiseData.Builder()
-                .setIncludeDeviceName(true)
-                .setIncludeTxPowerLevel(false)
                 .addServiceUuid(pUuid)
-                //.addServiceData(pUuid, "Data".getBytes(Charset.forName("UTF-8")))
+                .setIncludeDeviceName(false)
+                .setIncludeTxPowerLevel(false)
+                .build();
+
+        String deviceName = BluetoothAdapter.getDefaultAdapter().getName();
+        AdvertiseData scanResponse = new AdvertiseData.Builder()
+                .addServiceData(pUuid, deviceName.getBytes(Charset.forName("UTF-8")))
                 .build();
 
         AdvertiseCallback advertisingCallback = new AdvertiseCallback() {
@@ -170,7 +203,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
         };
 
-        advertiser.startAdvertising(settings, data, advertisingCallback);
+        try {
+            advertiser.startAdvertising(settings, data, scanResponse, advertisingCallback);
+        } catch(Exception e) {
+            Toast.makeText(getBaseContext(), "Cannot start advertising: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
     }
 
     @Override

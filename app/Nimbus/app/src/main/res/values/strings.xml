@@ -1,5 +1,5 @@
 <resources>
     <string name="app_name">Nimbus</string>
 
-    <string name="ble_uuid">CDB7950D-73F1-4D4D-8E47-C090502DBD63</string>
+    <string name="ble_uuid">2f46a60f-9e71-4a60-965a-b29442f11f62</string>
 </resources>
