@@ -19,11 +19,10 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
-import android.os.Handler;
 import android.os.ParcelUuid;
-import android.text.TextUtils;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -31,14 +30,19 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
 import java.nio.charset.Charset;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 import java.util.UUID;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
     private TextView mText;
+    private ScrollView mScrollContainer;
     BluetoothLeAdvertiser mAdvertiser;
     private Button mAdvertiseButton;
     private boolean mAdvertiseActive;
@@ -47,12 +51,19 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private boolean mDiscoverActive;
     private Button mClearTextButton;
 
+    // Discovered IDs.
+    static final int MAX_ID_AGE_SECS = 300;
+    static final int MAX_ID_REPORT_SECS = 5;
+    private TreeMap<String, Instant> mDiscoveredIDs;
+    private Instant mDiscoveredIDsAuditTime;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
 
+        setContentView(R.layout.activity_main);
         mText = (TextView) findViewById(R.id.text);
+        mScrollContainer = (ScrollView) findViewById(R.id.scroll_container);
         mBluetoothLeScanner = null;
         mDiscoverActive = false;
         mDiscoverButton = (Button) findViewById(R.id.discover_btn);
@@ -65,6 +76,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mAdvertiseButton.setOnClickListener(this);
         mClearTextButton = (Button) findViewById(R.id.clear_text_btn);
         mClearTextButton.setOnClickListener(this);
+        mDiscoveredIDs = new TreeMap<String, Instant>();
+        mDiscoveredIDsAuditTime = Instant.now();
     }
 
     @Override
@@ -149,7 +162,28 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             super.onScanResult(callbackType, result);
             if (result != null) {
                 StringBuilder builder = new StringBuilder(new String(result.getScanRecord().getServiceData(result.getScanRecord().getServiceUuids().get(0)), Charset.forName("UTF-8")));
-                mText.append(new Date() + ": " + builder.toString() + "\n");
+                String id = builder.toString();
+                Instant now = Instant.now();
+                Instant time = mDiscoveredIDs.get(id);
+                if (time == null) {
+                    mDiscoveredIDs.put(id, now);
+                    mText.append(new Date() + ": " + id + "\n");
+                } else {
+                    if (Duration.between(time, now).toSeconds() >= MAX_ID_REPORT_SECS) {
+                        mDiscoveredIDs.replace(id, now);
+                        mText.append(new Date() + ": " + id + "\n");
+                    }
+                }
+                if (Duration.between(mDiscoveredIDsAuditTime, now).toSeconds() >= MAX_ID_AGE_SECS) {
+                    mDiscoveredIDsAuditTime = now;
+                    TreeMap<String, Instant> tmpIDs = new TreeMap<String, Instant>();
+                    for (Map.Entry<String, Instant> entry : mDiscoveredIDs.entrySet()) {
+                        if (Duration.between(entry.getValue(), now).toSeconds() < MAX_ID_AGE_SECS) {
+                            tmpIDs.put(entry.getKey(), entry.getValue());
+                        }
+                    }
+                    mDiscoveredIDs = tmpIDs;
+                }
             }
         }
 

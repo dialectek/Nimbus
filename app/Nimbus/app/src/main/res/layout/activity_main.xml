@@ -25,14 +25,21 @@
         android:layout_height="wrap_content"
         android:text="Clear Discovered" />
 
-    <TextView
-        android:id="@+id/text"
-        android:layout_width="wrap_content"
+    <ScrollView
+        android:id="@+id/scroll_container"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text=""
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        android:layout_margin="8dp"
+        android:layout_weight="1">
+
+        <TextView
+            android:id="@+id/text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="monospace"
+            android:textSize="12sp"
+            android:textAppearance="@style/TextAppearance.AppCompat.Medium"/>
+
+    </ScrollView>
 
 </LinearLayout>
