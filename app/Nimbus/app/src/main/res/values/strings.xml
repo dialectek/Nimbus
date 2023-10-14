@@ -1,5 +1,7 @@
 <resources>
     <string name="app_name">Nimbus</string>
-
     <string name="ble_uuid">2f46a60f-9e71-4a60-965a-b29442f11f62</string>
+    <string name="eula_title">License</string>
+    <string name="eula_accept">Accept</string>
+    <string name="eula_refuse">Refuse</string>
 </resources>

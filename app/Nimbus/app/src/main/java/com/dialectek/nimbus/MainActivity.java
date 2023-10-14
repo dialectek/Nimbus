@@ -61,6 +61,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        Eula.show(this);
+
         setContentView(R.layout.activity_main);
         mText = (TextView) findViewById(R.id.text);
         mScrollContainer = (ScrollView) findViewById(R.id.scroll_container);
