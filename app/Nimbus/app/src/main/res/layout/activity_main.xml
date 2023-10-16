@@ -11,19 +11,24 @@
         android:id="@+id/advertise_btn"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Start Advertise"/>
+        android:text="Start Advertising"/>
 
     <Button
         android:id="@+id/discover_btn"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Start Discover" />
+        android:text="Start Discovering" />
 
     <Button
         android:id="@+id/clear_text_btn"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Clear Discovered" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Discovered:" />
 
     <ScrollView
         android:id="@+id/scroll_container"

@@ -282,21 +282,21 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         if( v.getId() == R.id.discover_btn ) {
             if (mDiscoverActive) {
                 stopDiscover();
-                mDiscoverButton.setText("Start Discover");
+                mDiscoverButton.setText("Start Discovering");
                 mDiscoverActive = false;
             } else {
                 startDiscover();
-                mDiscoverButton.setText("Stop Discover");
+                mDiscoverButton.setText("Stop Discovering");
                 mDiscoverActive = true;
             }
         } else if( v.getId() == R.id.advertise_btn ) {
             if (mAdvertiseActive) {
                 stopAdvertise();
-                mAdvertiseButton.setText("Start Advertise");
+                mAdvertiseButton.setText("Start Advertising");
                 mAdvertiseActive = false;
             } else {
                 startAdvertise();
-                mAdvertiseButton.setText("Stop Advertise");
+                mAdvertiseButton.setText("Stop Advertising");
                 mAdvertiseActive = true;
             }
         } else if( v.getId() == R.id.clear_text_btn ) {
