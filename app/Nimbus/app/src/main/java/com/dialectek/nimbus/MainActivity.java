@@ -53,7 +53,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     // Discovered IDs.
     static final int MAX_ID_AGE_SECS = 300;
-    static final int MAX_ID_REPORT_SECS = 5;
+    static final int MAX_ID_REFRESH_SECS = 5;
     private TreeMap<String, Instant> mDiscoveredIDs;
     private Instant mDiscoveredIDsAuditTime;
 
@@ -171,7 +171,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     mDiscoveredIDs.put(id, now);
                     mText.append(new Date() + ": " + id + "\n");
                 } else {
-                    if (Duration.between(time, now).toSeconds() >= MAX_ID_REPORT_SECS) {
+                    if (Duration.between(time, now).toSeconds() >= MAX_ID_REFRESH_SECS) {
                         mDiscoveredIDs.replace(id, now);
                         mText.append(new Date() + ": " + id + "\n");
                     }

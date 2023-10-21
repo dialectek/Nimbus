@@ -7,23 +7,43 @@
     android:orientation="vertical"
     tools:context=".MainActivity">
 
-    <Button
-        android:id="@+id/advertise_btn"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Start Advertising"/>
+        android:layout_marginTop="8dp"
+        android:gravity="center"
+        android:orientation="vertical">
 
-    <Button
-        android:id="@+id/discover_btn"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Start Discovering" />
+        <Button
+            android:id="@+id/advertise_btn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:background="@drawable/button_bg"
+            android:layout_weight="1"
+            android:textColor="@color/black"
+            android:text="Start Advertising`"/>
 
-    <Button
-        android:id="@+id/clear_text_btn"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Clear Discovered" />
+        <Button
+            android:id="@+id/discover_btn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:background="@drawable/button_bg"
+            android:layout_weight="1"
+            android:textColor="@color/black"
+            android:text="Start Discovering"/>
+
+        <Button
+            android:id="@+id/clear_text_btn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:background="@drawable/button_bg"
+            android:layout_weight="1"
+            android:textColor="@color/black"
+            android:text="Clear Discovered"/>
+    </LinearLayout>
 
     <TextView
         android:layout_width="wrap_content"
@@ -44,7 +64,6 @@
             android:fontFamily="monospace"
             android:textSize="12sp"
             android:textAppearance="@style/TextAppearance.AppCompat.Medium"/>
-
     </ScrollView>
 
 </LinearLayout>
