@@ -23,9 +23,13 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.location.Location;
+
+import com.google.android.gms.location.LocationRequest;
+
 import android.os.Bundle;
+import android.os.Looper;
 import android.os.ParcelUuid;
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ScrollView;
@@ -34,6 +38,12 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationCallback;
+import com.google.android.gms.location.LocationResult;
+import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.location.Priority;
 
 import java.nio.charset.Charset;
 import java.time.Duration;
@@ -45,8 +55,6 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
 
-import static androidx.core.content.PackageManagerCompat.LOG_TAG;
-
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
     public static String username;
     public static String password;
@@ -55,6 +63,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private TextView mText;
     private ScrollView mScrollContainer;
     BluetoothLeAdvertiser mAdvertiser;
+    ParcelUuid mUuid;
     AdvertisingSet mAdvertisingSet;
     private Button mAdvertiseButton;
     private boolean mAdvertiseActive;
@@ -68,6 +77,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     static final int MAX_ID_REFRESH_SECS = 5;
     private TreeMap<String, Instant> mDiscoveredIDs;
     private Instant mDiscoveredIDsAuditTime;
+
+    // Location service.
+    private FusedLocationProviderClient mFusedLocationClient;
+    private LocationRequest mLocationRequest;
+    private LocationCallback mLocationCallback;
+    private Location mLocation;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -84,6 +99,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mDiscoverButton.setEnabled(false);
         mDiscoverButton.setOnClickListener(this);
         mAdvertiser = null;
+        mUuid = null;
+        mAdvertisingSet = null;
         mAdvertiseActive = false;
         mAdvertiseButton = (Button) findViewById(R.id.advertise_btn);
         mAdvertiseButton.setEnabled(false);
@@ -92,6 +109,36 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mClearTextButton.setOnClickListener(this);
         mDiscoveredIDs = new TreeMap<String, Instant>();
         mDiscoveredIDsAuditTime = Instant.now();
+
+        // Initialize location service.
+        mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
+        mLocationRequest = new LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 5000)
+                .setMinUpdateIntervalMillis(5000)
+                .setMaxUpdateDelayMillis(15000)
+                .setWaitForAccurateLocation(false)
+                .build();
+        mLocationCallback = new LocationCallback() {
+            @Override
+            public void onLocationResult(LocationResult locationResult) {
+                super.onLocationResult(locationResult);
+                mLocation = locationResult.getLastLocation();
+                if (mAdvertisingSet != null) {
+                    Double latitude = mLocation.getLatitude();
+                    Double longitude = mLocation.getLongitude();
+                    if (latitude != null && longitude != null) {
+                        String serviceData = id + ";" + latitude + "," + longitude;
+                        AdvertiseData data = new AdvertiseData.Builder()
+                                .addServiceUuid(mUuid)
+                                .addServiceData(mUuid, serviceData.getBytes(Charset.forName("UTF-8")))
+                                .setIncludeDeviceName(false)
+                                .setIncludeTxPowerLevel(false)
+                                .build();
+                        mAdvertisingSet.setAdvertisingData(data);
+                    }
+                }
+            }
+        };
+        mLocation = null;
     }
 
     @Override
@@ -100,6 +147,21 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mAdvertiser = null;
         mBluetoothLeScanner = null;
         requestPermissionsAndEnable();
+        mFusedLocationClient.requestLocationUpdates(mLocationRequest, mLocationCallback, Looper.myLooper());
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        stopDiscover();
+        mDiscoverButton.setTextColor(Color.BLACK);
+        mDiscoverButton.setText("Start Discovering");
+        mDiscoverActive = false;
+        stopAdvertise();
+        mAdvertiseButton.setTextColor(Color.BLACK);
+        mAdvertiseButton.setText("Start Advertising");
+        mAdvertiseActive = false;
+        mFusedLocationClient.removeLocationUpdates(mLocationCallback);
     }
 
     private void requestPermissionsAndEnable() {
@@ -107,7 +169,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 android.Manifest.permission.ACCESS_FINE_LOCATION,
                 android.Manifest.permission.BLUETOOTH_SCAN,
                 Manifest.permission.BLUETOOTH_CONNECT,
-                Manifest.permission.BLUETOOTH_ADVERTISE};
+                Manifest.permission.BLUETOOTH_ADVERTISE,
+                android.Manifest.permission.INTERNET
+        };
         ActivityCompat.requestPermissions(this, permissions, 2);
     }
 
@@ -131,6 +195,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 boolean advertiseGranted = grantResults[3] == PackageManager.PERMISSION_GRANTED;
                 if (!advertiseGranted) {
                     Toast.makeText(this, "Advertise permission denied", Toast.LENGTH_SHORT).show();
+                }
+                boolean internetGranted = grantResults[4] == PackageManager.PERMISSION_GRANTED;
+                if (!internetGranted) {
+                    Toast.makeText(this, "Internet permission denied", Toast.LENGTH_SHORT).show();
                 }
                 if (!BluetoothAdapter.getDefaultAdapter().isMultipleAdvertisementSupported()) {
                     Toast.makeText(this, "Multiple advertisement not supported", Toast.LENGTH_SHORT).show();
@@ -190,36 +258,36 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             super.onScanFailed(errorCode);
             Toast.makeText(getBaseContext(), "Scan failed: " + errorCode, Toast.LENGTH_SHORT).show();
         }
+    };
 
-        // Register id.
-        private void registerID(ScanResult result) {
-            if (result != null) {
-                StringBuilder builder = new StringBuilder(new String(result.getScanRecord().getServiceData(result.getScanRecord().getServiceUuids().get(0)), Charset.forName("UTF-8")));
-                String id = builder.toString();
-                Instant now = Instant.now();
-                Instant time = mDiscoveredIDs.get(id);
-                if (time == null) {
-                    mDiscoveredIDs.put(id, now);
+    // Register id.
+    private void registerID(ScanResult result) {
+        if (result != null) {
+            StringBuilder builder = new StringBuilder(new String(result.getScanRecord().getServiceData(result.getScanRecord().getServiceUuids().get(0)), Charset.forName("UTF-8")));
+            String id = builder.toString();
+            Instant now = Instant.now();
+            Instant time = mDiscoveredIDs.get(id);
+            if (time == null) {
+                mDiscoveredIDs.put(id, now);
+                mText.append(new Date() + ": " + id + "\n");
+            } else {
+                if (Duration.between(time, now).toSeconds() >= MAX_ID_REFRESH_SECS) {
+                    mDiscoveredIDs.replace(id, now);
                     mText.append(new Date() + ": " + id + "\n");
-                } else {
-                    if (Duration.between(time, now).toSeconds() >= MAX_ID_REFRESH_SECS) {
-                        mDiscoveredIDs.replace(id, now);
-                        mText.append(new Date() + ": " + id + "\n");
-                    }
-                }
-                if (Duration.between(mDiscoveredIDsAuditTime, now).toSeconds() >= MAX_ID_AGE_SECS) {
-                    mDiscoveredIDsAuditTime = now;
-                    TreeMap<String, Instant> tmpIDs = new TreeMap<String, Instant>();
-                    for (Map.Entry<String, Instant> entry : mDiscoveredIDs.entrySet()) {
-                        if (Duration.between(entry.getValue(), now).toSeconds() < MAX_ID_AGE_SECS) {
-                            tmpIDs.put(entry.getKey(), entry.getValue());
-                        }
-                    }
-                    mDiscoveredIDs = tmpIDs;
                 }
             }
+            if (Duration.between(mDiscoveredIDsAuditTime, now).toSeconds() >= MAX_ID_AGE_SECS) {
+                mDiscoveredIDsAuditTime = now;
+                TreeMap<String, Instant> tmpIDs = new TreeMap<String, Instant>();
+                for (Map.Entry<String, Instant> entry : mDiscoveredIDs.entrySet()) {
+                    if (Duration.between(entry.getValue(), now).toSeconds() < MAX_ID_AGE_SECS) {
+                        tmpIDs.put(entry.getKey(), entry.getValue());
+                    }
+                }
+                mDiscoveredIDs = tmpIDs;
+            }
         }
-    };
+    }
 
     private void startDiscover() {
         List<ScanFilter> filters = new ArrayList<ScanFilter>();
@@ -282,7 +350,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private void startAdvertise() {
 
-        // Check if all features are supported
+        // Check if features are supported
         BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
         if (!adapter.isLe2MPhySupported()) {
             Toast.makeText(getBaseContext(), "2M PHY not supported", Toast.LENGTH_SHORT).show();
@@ -293,29 +361,31 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             return;
         }
 
-        AdvertisingSetParameters.Builder parameters = (new AdvertisingSetParameters.Builder())
+        AdvertisingSetParameters parameters = (new AdvertisingSetParameters.Builder())
                 .setLegacyMode(false)
                 .setInterval(AdvertisingSetParameters.INTERVAL_HIGH)
                 .setTxPowerLevel(AdvertisingSetParameters.TX_POWER_MEDIUM)
                 .setConnectable(false)
                 .setPrimaryPhy(BluetoothDevice.PHY_LE_1M)
-                .setSecondaryPhy(BluetoothDevice.PHY_LE_2M);
+                .setSecondaryPhy(BluetoothDevice.PHY_LE_2M)
+                .build();
 
-        ParcelUuid pUuid = new ParcelUuid(UUID.fromString(getString(R.string.ble_uuid)));
+        mUuid = new ParcelUuid(UUID.fromString(getString(R.string.ble_uuid)));
 
+        String serviceData = id + ";";
         AdvertiseData data = new AdvertiseData.Builder()
-                .addServiceUuid(pUuid)
-                .addServiceData(pUuid, id.getBytes(Charset.forName("UTF-8")))
+                .addServiceUuid(mUuid)
+                .addServiceData(mUuid, serviceData.getBytes(Charset.forName("UTF-8")))
                 .setIncludeDeviceName(false)
                 .setIncludeTxPowerLevel(false)
                 .build();
 
         AdvertiseData scanResponse = new AdvertiseData.Builder()
-                .addServiceData(pUuid, id.getBytes(Charset.forName("UTF-8")))
+                .addServiceData(mUuid, id.getBytes(Charset.forName("UTF-8")))
                 .build();
 
         try {
-            mAdvertiser.startAdvertisingSet(parameters.build(), data, scanResponse, null, null, advertisingSetCallback);
+            mAdvertiser.startAdvertisingSet(parameters, data, scanResponse, null, null, advertisingSetCallback);
         } catch (Exception e) {
             Toast.makeText(getBaseContext(), "Cannot start advertising: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
@@ -324,7 +394,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private void stopAdvertise() {
         try {
             mAdvertiser.stopAdvertisingSet(advertisingSetCallback);
-        } catch(Exception e) {
+        } catch (Exception e) {
             Toast.makeText(getBaseContext(), "Cannot stop advertising: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
