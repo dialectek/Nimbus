@@ -1,3 +1,6 @@
+// "Radar" view.
+// From: https://stackoverflow.com/questions/25169231/radar-animation-android
+
 package com.dialectek.nimbus;
 
 import android.content.Context;
