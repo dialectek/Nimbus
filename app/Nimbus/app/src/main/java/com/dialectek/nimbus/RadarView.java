@@ -9,7 +9,6 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Point;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.View;
 
 public class RadarView extends View {
@@ -140,21 +139,5 @@ public class RadarView extends View {
 
       lines = 0;
       for (Point p : latestPoint) { if (p != null) { lines++; } }
-
-      boolean debug = false;
-      if (debug)
-      {
-         StringBuilder sb = new StringBuilder(" >> ");
-         for (Point p : latestPoint)
-         {
-            if (p != null) { sb.append(" (" + p.x + "x" + p.y + ")"); }
-         }
-
-         Log.d(LOG, sb.toString());
-         //  " - R:" + r + ", i=" + i +
-         //  " - Size: " + width + "x" + height +
-         //  " - Angle: " + angle +
-         //  " - Offset: " + offsetX + "," + offsetY);
-      }
    }
 }

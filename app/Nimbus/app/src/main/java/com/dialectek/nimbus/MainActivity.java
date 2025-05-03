@@ -23,6 +23,10 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.location.Location;
 
 import com.google.android.gms.location.LocationRequest;
@@ -30,12 +34,15 @@ import com.google.android.gms.location.LocationRequest;
 import android.os.Bundle;
 import android.os.Looper;
 import android.os.ParcelUuid;
+import android.text.Spannable;
+import android.text.style.ForegroundColorSpan;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
@@ -44,6 +51,8 @@ import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.Priority;
+import com.google.android.material.slider.LabelFormatter;
+import com.google.android.material.slider.Slider;
 
 import java.nio.charset.Charset;
 import java.time.Duration;
@@ -51,39 +60,58 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Random;
 import java.util.TreeMap;
 import java.util.UUID;
 
-public class MainActivity extends AppCompatActivity implements View.OnClickListener {
+public class MainActivity extends AppCompatActivity
+        implements View.OnClickListener, SensorEventListener {
    public static String username;
    public static String password;
    public static String id;
 
+   // UI.
    private TextView      mText;
    private ScrollView    mScrollContainer;
-   BluetoothLeAdvertiser mAdvertiser;
-   ParcelUuid            mUuid;
-   AdvertisingSet        mAdvertisingSet;
    private Button        mAdvertiseButton;
    private boolean       mAdvertiseActive;
-   BluetoothLeScanner    mBluetoothLeScanner;
    private Button        mDiscoverButton;
    private boolean       mDiscoverActive;
    private Button        mClearTextButton;
-   private RadarView mRadarView = null;
+   private RadarView mRadarView;
+   private Slider mRangeSlider;
+   private Random mRandom;
 
    // Discovered IDs.
-   static final int                 MAX_ID_AGE_SECS     = 300;
+   static final int                 MAX_ID_AGE_SECS     = 10;
    static final int                 MAX_ID_REFRESH_SECS = 5;
-   private TreeMap<String, Instant> mDiscoveredIDs;
-   private Instant mDiscoveredIDsAuditTime;
+   private TreeMap<String, ID> mDiscoveredIDs;
+   android.os.Handler mHandler;
+   Runnable           mTick;
+
+   // Bluetooth.
+   BluetoothLeAdvertiser mAdvertiser;
+   ParcelUuid            mUuid;
+   AdvertisingSet        mAdvertisingSet;
+   BluetoothLeScanner    mBluetoothLeScanner;
 
    // Location service.
    private FusedLocationProviderClient mFusedLocationClient;
    private LocationRequest             mLocationRequest;
    private LocationCallback            mLocationCallback;
    private Location mLocation;
+
+   // Compass.
+   private SensorManager sensorManager;
+   private Sensor accelerometer;
+   private Sensor magnetometer;
+   private float[] lastAccelerometer = new float[3];
+   private float[] lastMagnetometer = new float[3];
+   private boolean isAccelerometerSet = false;
+   private boolean isMagnetometerSet = false;
+   private float currentDegree = 0f;
 
    @Override
    protected void onCreate(Bundle savedInstanceState)
@@ -109,8 +137,18 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
       mAdvertiseButton.setOnClickListener(this);
       mClearTextButton = (Button)findViewById(R.id.clear_text_btn);
       mClearTextButton.setOnClickListener(this);
-      mDiscoveredIDs          = new TreeMap<String, Instant>();
-      mDiscoveredIDsAuditTime = Instant.now();
+      mRandom = new Random();
+      mDiscoveredIDs          = new TreeMap<String, ID>();
+      mHandler = new android.os.Handler();
+      mTick    = new Runnable()
+      {
+         @Override
+         public void run()
+         {
+            refreshIDs(Instant.now());
+            mHandler.postDelayed(this, MAX_ID_REFRESH_SECS * 1000);
+         }
+      };
 
       // Initialize location service.
       mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
@@ -145,17 +183,25 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
          }
       };
       mLocation = null;
-      
+
+      // Compass.
+      sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+      accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+      magnetometer = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
+
+      // Radar.
       mRadarView = (RadarView) findViewById(R.id.radarView);
       mRadarView.setShowCircles(true);
-   }
 
-   public void stopAnimation(View view) {
-      if (mRadarView != null) mRadarView.stopAnimation();
-   }
-
-   public void startAnimation(View view) {
-      if (mRadarView != null) mRadarView.startAnimation();
+      // Range slider.
+      mRangeSlider = findViewById(R.id.range_slider);
+      mRangeSlider.setLabelFormatter(new LabelFormatter() {
+         @NonNull
+         @Override
+         public String getFormattedValue(float value) {
+            return (int)value + "m";
+         }
+      });
    }
 
    @Override
@@ -166,9 +212,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
       mBluetoothLeScanner = null;
       requestPermissionsAndEnable();
       mFusedLocationClient.requestLocationUpdates(mLocationRequest, mLocationCallback, Looper.myLooper());
+      sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_UI);
+      sensorManager.registerListener(this, magnetometer, SensorManager.SENSOR_DELAY_UI);
+      mHandler.removeCallbacks(mTick);
+      mHandler.post(mTick);
       mRadarView.startAnimation();
    }
-
 
    @Override
    protected void onStop()
@@ -183,9 +232,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
       mAdvertiseButton.setText("Start Advertising");
       mAdvertiseActive = false;
       mFusedLocationClient.removeLocationUpdates(mLocationCallback);
+      sensorManager.unregisterListener(this);
+      mHandler.removeCallbacks(mTick);
       mRadarView.stopAnimation();
    }
-
 
    private void requestPermissionsAndEnable()
    {
@@ -245,7 +295,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
       }
    }
 
-
    private void requestEnableBluetooth()
    {
       BluetoothManager bluetoothManager = (BluetoothManager)getSystemService(Context.BLUETOOTH_SERVICE);
@@ -263,7 +312,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
          mBluetoothLeScanner = BluetoothAdapter.getDefaultAdapter().getBluetoothLeScanner();
       }
    }
-
 
    @Override
    public void onActivityResult(int requestCode, int resultCode, Intent data)
@@ -284,7 +332,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
          }
       }
    }
-
 
    ScanCallback scanCallback = new ScanCallback()
    {
@@ -322,44 +369,79 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
       {
          StringBuilder builder = new StringBuilder(new String(result.getScanRecord().getServiceData(result.getScanRecord().getServiceUuids().get(0)), Charset.forName("UTF-8")));
          String        id      = builder.toString();
+         float distance = -1.0f;
+         float xDist = -1.0f;
+         float yDist = -1.0f;
+         if (id.contains(";")) {
+            String[] idLatLong = id.split(";");
+            if (idLatLong != null && idLatLong.length > 0) {
+               id = idLatLong[0];
+               if (idLatLong.length >= 2 && mLocation != null) {
+                  String[] latLong = idLatLong[1].split(",");
+                  if (latLong != null && latLong.length >= 2) {
+                     Double otherLatitude = Double.parseDouble(latLong[0]);
+                     Double otherLongitude = Double.parseDouble(latLong[1]);
+                     Double myLatitude = mLocation.getLatitude();
+                     Double myLongitude = mLocation.getLongitude();
+                     if ((myLatitude != null) && (myLongitude != null)) {
+                        float[] results = new float[1];
+                        Location.distanceBetween(myLatitude, myLongitude, otherLatitude, otherLongitude, results);
+                        distance = results[0];
+                        Location.distanceBetween(myLatitude, myLongitude, myLatitude, otherLongitude, results);
+                        xDist = results[0];
+                        Location.distanceBetween(myLatitude, myLongitude, otherLatitude, myLongitude, results);
+                        yDist = results[0];
+                     }
+                  }
+               }
+            }
+         }
          Instant       now     = Instant.now();
-         Instant       time    = mDiscoveredIDs.get(id);
-         if (time == null)
+         ID data    = mDiscoveredIDs.get(id);
+         if (data == null)
          {
-            mDiscoveredIDs.put(id, now);
-            mText.append(new Date() + ": " + id + "\n");
+            mRandom.setSeed(id.hashCode());
+            int red = mRandom.nextInt(256);
+            int green = mRandom.nextInt(256);
+            int blue = mRandom.nextInt(256);
+            int color = Color.argb(255, red, green, blue);
+            data = new ID(id, color, distance, xDist, yDist, now);
          }
          else
          {
-            if (Duration.between(time, now).toSeconds() >= MAX_ID_REFRESH_SECS)
-            {
-               mDiscoveredIDs.replace(id, now);
-               mText.append(new Date() + ": " + id + "\n");
-            }
+            data.time = now;
          }
-         mScrollContainer.post(new Runnable()
-         {
-            public void run()
-            {
-               mScrollContainer.fullScroll(View.FOCUS_DOWN);
-            }
-         });
-         if (Duration.between(mDiscoveredIDsAuditTime, now).toSeconds() >= MAX_ID_AGE_SECS)
-         {
-            mDiscoveredIDsAuditTime = now;
-            TreeMap<String, Instant> tmpIDs = new TreeMap<String, Instant>();
-            for (Map.Entry<String, Instant> entry : mDiscoveredIDs.entrySet())
-            {
-               if (Duration.between(entry.getValue(), now).toSeconds() < MAX_ID_AGE_SECS)
-               {
-                  tmpIDs.put(entry.getKey(), entry.getValue());
-               }
-            }
-            mDiscoveredIDs = tmpIDs;
-         }
+         mDiscoveredIDs.put(id, data);
+         refreshIDs(now);
       }
    }
 
+   // Refresh IDs.
+   private synchronized void refreshIDs(Instant now) {
+      mText.setText("");
+      TreeMap<String, ID> tmpIDs = new TreeMap<String, ID>();
+      for (Map.Entry<String, ID> entry : mDiscoveredIDs.entrySet())
+      {
+         String id = entry.getKey();
+         ID data = entry.getValue();
+         if (Duration.between(data.time, now).toSeconds() < MAX_ID_AGE_SECS)
+         {
+            tmpIDs.put(id, data);
+            appendColoredText(mText, id + "\n", data.color);
+         }
+      }
+      mDiscoveredIDs = tmpIDs;
+   }
+
+   // Append colored text.
+   public static void appendColoredText(TextView tv, String text, int color) {
+      int start = tv.getText().length();
+      tv.append(text);
+      int end = tv.getText().length();
+
+      Spannable spannableText = (Spannable) tv.getText();
+      spannableText.setSpan(new ForegroundColorSpan(color), start, end, 0);
+   }
 
    private void startDiscover()
    {
@@ -496,7 +578,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
       }
    }
 
-
    @Override
    public void onClick(View v)
    {
@@ -539,4 +620,30 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
          mText.setText("");
       }
    }
+
+   @Override
+   public void onSensorChanged(SensorEvent event) {
+      if (event.sensor == accelerometer) {
+         System.arraycopy(event.values, 0, lastAccelerometer, 0, event.values.length);
+         isAccelerometerSet = true;
+      } else if (event.sensor == magnetometer) {
+         System.arraycopy(event.values, 0, lastMagnetometer, 0, event.values.length);
+         isMagnetometerSet = true;
+      }
+
+      if (isAccelerometerSet && isMagnetometerSet) {
+         float[] rotationMatrix = new float[9];
+         boolean success = SensorManager.getRotationMatrix(rotationMatrix, null, lastAccelerometer, lastMagnetometer);
+         if (success) {
+            float[] orientation = new float[3];
+            SensorManager.getOrientation(rotationMatrix, orientation);
+            float azimuthInRadians = orientation[0];
+            float azimuthInDegrees = (float) Math.toDegrees(azimuthInRadians);
+            currentDegree = -azimuthInDegrees;
+         }
+      }
+   }
+
+   @Override
+   public void onAccuracyChanged(Sensor sensor, int accuracy) {}
 }
