@@ -58,9 +58,7 @@ import java.nio.charset.Charset;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
 import java.util.TreeMap;
@@ -79,15 +77,15 @@ public class MainActivity extends AppCompatActivity
    private boolean       mAdvertiseActive;
    private Button        mDiscoverButton;
    private boolean       mDiscoverActive;
-   private Button        mClearTextButton;
+   private Button mClearDiscoveredButton;
    private RadarView mRadarView;
-   private Slider mRangeSlider;
+   public static Slider mRangeSlider;
    private Random mRandom;
 
    // Discovered IDs.
    static final int                 MAX_ID_AGE_SECS     = 10;
-   static final int                 MAX_ID_REFRESH_SECS = 5;
-   private TreeMap<String, ID> mDiscoveredIDs;
+   static final int                 MAX_ID_REFRESH_MS = 500;
+   public static TreeMap<String, ID> mDiscoveredIDs;
    android.os.Handler mHandler;
    Runnable           mTick;
 
@@ -111,7 +109,7 @@ public class MainActivity extends AppCompatActivity
    private float[] lastMagnetometer = new float[3];
    private boolean isAccelerometerSet = false;
    private boolean isMagnetometerSet = false;
-   private float currentDegree = 0f;
+   public static float compassBearing = 0.0f;
 
    @Override
    protected void onCreate(Bundle savedInstanceState)
@@ -135,8 +133,8 @@ public class MainActivity extends AppCompatActivity
       mAdvertiseButton = (Button)findViewById(R.id.advertise_btn);
       mAdvertiseButton.setEnabled(false);
       mAdvertiseButton.setOnClickListener(this);
-      mClearTextButton = (Button)findViewById(R.id.clear_text_btn);
-      mClearTextButton.setOnClickListener(this);
+      mClearDiscoveredButton = (Button)findViewById(R.id.clear_discovered_btn);
+      mClearDiscoveredButton.setOnClickListener(this);
       mRandom = new Random();
       mDiscoveredIDs          = new TreeMap<String, ID>();
       mHandler = new android.os.Handler();
@@ -146,7 +144,7 @@ public class MainActivity extends AppCompatActivity
          public void run()
          {
             refreshIDs(Instant.now());
-            mHandler.postDelayed(this, MAX_ID_REFRESH_SECS * 1000);
+            mHandler.postDelayed(this, MAX_ID_REFRESH_MS);
          }
       };
 
@@ -216,7 +214,7 @@ public class MainActivity extends AppCompatActivity
       sensorManager.registerListener(this, magnetometer, SensorManager.SENSOR_DELAY_UI);
       mHandler.removeCallbacks(mTick);
       mHandler.post(mTick);
-      mRadarView.startAnimation();
+      mRadarView.startUpdate();
    }
 
    @Override
@@ -234,7 +232,7 @@ public class MainActivity extends AppCompatActivity
       mFusedLocationClient.removeLocationUpdates(mLocationCallback);
       sensorManager.unregisterListener(this);
       mHandler.removeCallbacks(mTick);
-      mRadarView.stopAnimation();
+      mRadarView.stopUpdate();
    }
 
    private void requestPermissionsAndEnable()
@@ -389,8 +387,14 @@ public class MainActivity extends AppCompatActivity
                         distance = results[0];
                         Location.distanceBetween(myLatitude, myLongitude, myLatitude, otherLongitude, results);
                         xDist = results[0];
+                        if (myLongitude > otherLongitude) {
+                           xDist = -xDist;
+                        }
                         Location.distanceBetween(myLatitude, myLongitude, otherLatitude, myLongitude, results);
                         yDist = results[0];
+                        if (myLatitude > otherLatitude) {
+                           yDist = -yDist;
+                        }
                      }
                   }
                }
@@ -409,6 +413,9 @@ public class MainActivity extends AppCompatActivity
          }
          else
          {
+            data.distance = distance;
+            data.xDist = xDist;
+            data.yDist = yDist;
             data.time = now;
          }
          mDiscoveredIDs.put(id, data);
@@ -427,7 +434,7 @@ public class MainActivity extends AppCompatActivity
          if (Duration.between(data.time, now).toSeconds() < MAX_ID_AGE_SECS)
          {
             tmpIDs.put(id, data);
-            appendColoredText(mText, id + "\n", data.color);
+            appendColoredText(mText, id + ";" + data.distance + "," + data.xDist + "," + data.yDist + "\n", data.color);
          }
       }
       mDiscoveredIDs = tmpIDs;
@@ -615,8 +622,9 @@ public class MainActivity extends AppCompatActivity
             mAdvertiseActive = true;
          }
       }
-      else if (v.getId() == R.id.clear_text_btn)
+      else if (v.getId() == R.id.clear_discovered_btn)
       {
+         mDiscoveredIDs.clear();
          mText.setText("");
       }
    }
@@ -639,7 +647,7 @@ public class MainActivity extends AppCompatActivity
             SensorManager.getOrientation(rotationMatrix, orientation);
             float azimuthInRadians = orientation[0];
             float azimuthInDegrees = (float) Math.toDegrees(azimuthInRadians);
-            currentDegree = -azimuthInDegrees;
+            compassBearing = -(float)((int)azimuthInDegrees);
          }
       }
    }

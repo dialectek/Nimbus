@@ -11,9 +11,13 @@ import android.graphics.Point;
 import android.util.AttributeSet;
 import android.view.View;
 
+import java.time.Duration;
+import java.util.Map;
+
 public class RadarView extends View {
    private final String LOG = "RadarView";
    private final int    POINT_ARRAY_SIZE = 25;
+   private final float ID_RADIUS = 15.0f;
 
    private int     fps         = 100;
    private boolean showCircles = true;
@@ -27,12 +31,10 @@ public class RadarView extends View {
       this(context, null);
    }
 
-
    public RadarView(Context context, AttributeSet attrs)
    {
       this(context, attrs, 0);
    }
-
 
    public RadarView(Context context, AttributeSet attrs, int defStyleAttr)
    {
@@ -53,7 +55,6 @@ public class RadarView extends View {
       }
    }
 
-
    android.os.Handler mHandler = new android.os.Handler();
    Runnable           mTick    = new Runnable()
    {
@@ -65,19 +66,16 @@ public class RadarView extends View {
       }
    };
 
-
-   public void startAnimation()
+   public void startUpdate()
    {
       mHandler.removeCallbacks(mTick);
       mHandler.post(mTick);
    }
 
-
-   public void stopAnimation()
+   public void stopUpdate()
    {
       mHandler.removeCallbacks(mTick);
    }
-
 
    public void setFrameRate(int fps) { this.fps = fps; }
    public int getFrameRate() { return(this.fps); }
@@ -89,14 +87,11 @@ public class RadarView extends View {
    {
       super.onDraw(canvas);
 
-
       int width  = getWidth();
       int height = getHeight();
-
       int r = Math.min(width, height);
 
-
-      //canvas.drawRect(0, 0, getWidth(), getHeight(), localPaint);
+      canvas.rotate( MainActivity.compassBearing, (float)r / 2.0f, (float)r / 2.0f);
 
       int   i          = r / 2;
       int   j          = i - 1;
@@ -124,8 +119,6 @@ public class RadarView extends View {
          latestPoint[x] = latestPoint[x - 1];
       }
 
-
-
       int lines = 0;
       for (int x = 0; x < POINT_ARRAY_SIZE; x++)
       {
@@ -136,8 +129,25 @@ public class RadarView extends View {
          }
       }
 
-
       lines = 0;
       for (Point p : latestPoint) { if (p != null) { lines++; } }
+
+      Paint colorPaint = new Paint();
+      colorPaint.setStyle(Paint.Style.FILL);
+      float range = MainActivity.mRangeSlider.getValue();
+      float r2 = (float)r / 2.0f;
+      for (Map.Entry<String, ID> entry : MainActivity.mDiscoveredIDs.entrySet())
+      {
+         ID data = entry.getValue();
+         if (data.distance >= 0.0f)
+         {
+            float x = (data.xDist / range) * r2;
+            float y = (data.yDist / range) * r2;
+            if (Math.abs(x) <= r2 && Math.abs(y) <= r2) {
+               colorPaint.setColor(data.color);
+               canvas.drawCircle(x + r2, y + r2, ID_RADIUS, colorPaint);
+            }
+         }
+      }
    }
 }
