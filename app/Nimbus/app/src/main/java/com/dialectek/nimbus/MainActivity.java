@@ -79,13 +79,13 @@ public class MainActivity extends AppCompatActivity
    private boolean       mDiscoverActive;
    private Button mClearDiscoveredButton;
    private RadarView mRadarView;
-   public static Slider mRangeSlider;
+   public static Slider RangeSlider;
    private Random mRandom;
 
    // Discovered IDs.
    static final int                 MAX_ID_AGE_SECS     = 10;
    static final int                 MAX_ID_REFRESH_MS = 500;
-   public static TreeMap<String, ID> mDiscoveredIDs;
+   public static TreeMap<String, ID> DiscoveredIDs;
    android.os.Handler mHandler;
    Runnable           mTick;
 
@@ -105,11 +105,11 @@ public class MainActivity extends AppCompatActivity
    private SensorManager sensorManager;
    private Sensor accelerometer;
    private Sensor magnetometer;
-   private float[] lastAccelerometer = new float[3];
-   private float[] lastMagnetometer = new float[3];
+   private float[] accelerometerData = new float[3];
+   private float[] magnetometerData = new float[3];
    private boolean isAccelerometerSet = false;
    private boolean isMagnetometerSet = false;
-   public static float compassBearing = 0.0f;
+   public static float CompassBearing = 0.0f;
 
    @Override
    protected void onCreate(Bundle savedInstanceState)
@@ -136,7 +136,7 @@ public class MainActivity extends AppCompatActivity
       mClearDiscoveredButton = (Button)findViewById(R.id.clear_discovered_btn);
       mClearDiscoveredButton.setOnClickListener(this);
       mRandom = new Random();
-      mDiscoveredIDs          = new TreeMap<String, ID>();
+      DiscoveredIDs          = new TreeMap<String, ID>();
       mHandler = new android.os.Handler();
       mTick    = new Runnable()
       {
@@ -189,11 +189,10 @@ public class MainActivity extends AppCompatActivity
 
       // Radar.
       mRadarView = (RadarView) findViewById(R.id.radarView);
-      mRadarView.setShowCircles(true);
 
       // Range slider.
-      mRangeSlider = findViewById(R.id.range_slider);
-      mRangeSlider.setLabelFormatter(new LabelFormatter() {
+      RangeSlider = findViewById(R.id.range_slider);
+      RangeSlider.setLabelFormatter(new LabelFormatter() {
          @NonNull
          @Override
          public String getFormattedValue(float value) {
@@ -210,8 +209,8 @@ public class MainActivity extends AppCompatActivity
       mBluetoothLeScanner = null;
       requestPermissionsAndEnable();
       mFusedLocationClient.requestLocationUpdates(mLocationRequest, mLocationCallback, Looper.myLooper());
-      sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_UI);
-      sensorManager.registerListener(this, magnetometer, SensorManager.SENSOR_DELAY_UI);
+      sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
+      sensorManager.registerListener(this, magnetometer, SensorManager.SENSOR_DELAY_NORMAL);
       mHandler.removeCallbacks(mTick);
       mHandler.post(mTick);
       mRadarView.startUpdate();
@@ -401,7 +400,7 @@ public class MainActivity extends AppCompatActivity
             }
          }
          Instant       now     = Instant.now();
-         ID data    = mDiscoveredIDs.get(id);
+         ID data    = DiscoveredIDs.get(id);
          if (data == null)
          {
             mRandom.setSeed(id.hashCode());
@@ -418,7 +417,7 @@ public class MainActivity extends AppCompatActivity
             data.yDist = yDist;
             data.time = now;
          }
-         mDiscoveredIDs.put(id, data);
+         DiscoveredIDs.put(id, data);
          refreshIDs(now);
       }
    }
@@ -427,7 +426,7 @@ public class MainActivity extends AppCompatActivity
    private synchronized void refreshIDs(Instant now) {
       mText.setText("");
       TreeMap<String, ID> tmpIDs = new TreeMap<String, ID>();
-      for (Map.Entry<String, ID> entry : mDiscoveredIDs.entrySet())
+      for (Map.Entry<String, ID> entry : DiscoveredIDs.entrySet())
       {
          String id = entry.getKey();
          ID data = entry.getValue();
@@ -437,7 +436,7 @@ public class MainActivity extends AppCompatActivity
             appendColoredText(mText, id + ";" + data.distance + "," + data.xDist + "," + data.yDist + "\n", data.color);
          }
       }
-      mDiscoveredIDs = tmpIDs;
+      DiscoveredIDs = tmpIDs;
    }
 
    // Append colored text.
@@ -624,31 +623,41 @@ public class MainActivity extends AppCompatActivity
       }
       else if (v.getId() == R.id.clear_discovered_btn)
       {
-         mDiscoveredIDs.clear();
+         DiscoveredIDs.clear();
          mText.setText("");
       }
    }
 
    @Override
-   public void onSensorChanged(SensorEvent event) {
-      if (event.sensor == accelerometer) {
-         System.arraycopy(event.values, 0, lastAccelerometer, 0, event.values.length);
-         isAccelerometerSet = true;
-      } else if (event.sensor == magnetometer) {
-         System.arraycopy(event.values, 0, lastMagnetometer, 0, event.values.length);
-         isMagnetometerSet = true;
+   public void onSensorChanged(SensorEvent sensorEvent) {
+
+      int sensorType = sensorEvent.sensor.getType();
+      switch (sensorType) {
+         case Sensor.TYPE_ACCELEROMETER:
+            accelerometerData = sensorEvent.values.clone();
+            isAccelerometerSet = true;
+            break;
+         case Sensor.TYPE_MAGNETIC_FIELD:
+            magnetometerData = sensorEvent.values.clone();
+            isMagnetometerSet = true;
+            break;
+         default:
+            return;
+      }
+      if (!isAccelerometerSet || !isMagnetometerSet) {
+         return;
       }
 
-      if (isAccelerometerSet && isMagnetometerSet) {
-         float[] rotationMatrix = new float[9];
-         boolean success = SensorManager.getRotationMatrix(rotationMatrix, null, lastAccelerometer, lastMagnetometer);
-         if (success) {
-            float[] orientation = new float[3];
-            SensorManager.getOrientation(rotationMatrix, orientation);
-            float azimuthInRadians = orientation[0];
-            float azimuthInDegrees = (float) Math.toDegrees(azimuthInRadians);
-            compassBearing = -(float)((int)azimuthInDegrees);
-         }
+      float[] rotationMatrix = new float[9];
+      boolean rotationOK = SensorManager.getRotationMatrix(rotationMatrix,
+              null, accelerometerData, magnetometerData);
+
+      float orientationValues[] = new float[3];
+      if (rotationOK) {
+         SensorManager.getOrientation(rotationMatrix,
+                 orientationValues);
+         float azimuth = orientationValues[0];
+         CompassBearing = -(float) Math.toDegrees(azimuth);
       }
    }
 

@@ -7,24 +7,20 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
-import android.graphics.Point;
 import android.util.AttributeSet;
 import android.view.View;
 
-import java.time.Duration;
+import com.google.android.material.slider.Slider;
+
+import java.time.Instant;
 import java.util.Map;
+import java.util.Random;
+import java.util.TreeMap;
 
 public class RadarView extends View {
-   private final String LOG = "RadarView";
-   private final int    POINT_ARRAY_SIZE = 25;
    private final float ID_RADIUS = 15.0f;
 
    private int     fps         = 100;
-   private boolean showCircles = true;
-
-   float alpha         = 0;
-   Point latestPoint[] = new Point[POINT_ARRAY_SIZE];
-   Paint latestPaint[] = new Paint[POINT_ARRAY_SIZE];
 
    public RadarView(Context context)
    {
@@ -39,20 +35,6 @@ public class RadarView extends View {
    public RadarView(Context context, AttributeSet attrs, int defStyleAttr)
    {
       super(context, attrs, defStyleAttr);
-
-      Paint localPaint = new Paint();
-      localPaint.setColor(Color.GREEN);
-      localPaint.setAntiAlias(true);
-      localPaint.setStyle(Paint.Style.STROKE);
-      localPaint.setStrokeWidth(1.0F);
-      localPaint.setAlpha(0);
-
-      int alpha_step = 255 / POINT_ARRAY_SIZE;
-      for (int i = 0; i < latestPaint.length; i++)
-      {
-         latestPaint[i] = new Paint(localPaint);
-         latestPaint[i].setAlpha(255 - (i * alpha_step));
-      }
    }
 
    android.os.Handler mHandler = new android.os.Handler();
@@ -80,8 +62,6 @@ public class RadarView extends View {
    public void setFrameRate(int fps) { this.fps = fps; }
    public int getFrameRate() { return(this.fps); }
 
-   public void setShowCircles(boolean showCircles) { this.showCircles = showCircles; }
-
    @Override
    protected void onDraw(Canvas canvas)
    {
@@ -91,52 +71,29 @@ public class RadarView extends View {
       int height = getHeight();
       int r = Math.min(width, height);
 
-      canvas.rotate( MainActivity.compassBearing, (float)r / 2.0f, (float)r / 2.0f);
+      Paint blackPaint = new Paint();
+      blackPaint.setColor(Color.BLACK);
+      blackPaint.setStyle(Paint.Style.STROKE);
+      blackPaint.setStrokeWidth(1.0F);
 
       int   i          = r / 2;
       int   j          = i - 1;
-      Paint localPaint = latestPaint[0];   // GREEN
+      canvas.drawCircle(i, i, j, blackPaint);
+      canvas.drawCircle(i, i, j, blackPaint);
+      canvas.drawCircle(i, i, j * 3 / 4, blackPaint);
+      canvas.drawCircle(i, i, j >> 1, blackPaint);
+      canvas.drawCircle(i, i, j >> 2, blackPaint);
+      canvas.drawLine(0, i, r, i, blackPaint);
+      canvas.drawLine(i, 0, i, r, blackPaint);
 
-      if (showCircles)
-      {
-         canvas.drawCircle(i, i, j, localPaint);
-         canvas.drawCircle(i, i, j, localPaint);
-         canvas.drawCircle(i, i, j * 3 / 4, localPaint);
-         canvas.drawCircle(i, i, j >> 1, localPaint);
-         canvas.drawCircle(i, i, j >> 2, localPaint);
-      }
-
-      alpha -= 0.5;
-      if (alpha < -360) { alpha = 0; }
-      double angle   = Math.toRadians(alpha);
-      int    offsetX = (int)(i + (float)(i * Math.cos(angle)));
-      int    offsetY = (int)(i - (float)(i * Math.sin(angle)));
-
-      latestPoint[0] = new Point(offsetX, offsetY);
-
-      for (int x = POINT_ARRAY_SIZE - 1; x > 0; x--)
-      {
-         latestPoint[x] = latestPoint[x - 1];
-      }
-
-      int lines = 0;
-      for (int x = 0; x < POINT_ARRAY_SIZE; x++)
-      {
-         Point point = latestPoint[x];
-         if (point != null)
-         {
-            canvas.drawLine(i, i, point.x, point.y, latestPaint[x]);
-         }
-      }
-
-      lines = 0;
-      for (Point p : latestPoint) { if (p != null) { lines++; } }
+      float r2 = (float)r / 2.0f;
+      float bearing = MainActivity.CompassBearing;
+      canvas.rotate( bearing, r2, r2);
 
       Paint colorPaint = new Paint();
       colorPaint.setStyle(Paint.Style.FILL);
-      float range = MainActivity.mRangeSlider.getValue();
-      float r2 = (float)r / 2.0f;
-      for (Map.Entry<String, ID> entry : MainActivity.mDiscoveredIDs.entrySet())
+      float range = MainActivity.RangeSlider.getValue();
+      for (Map.Entry<String, ID> entry : MainActivity.DiscoveredIDs.entrySet())
       {
          ID data = entry.getValue();
          if (data.distance >= 0.0f)
@@ -145,7 +102,7 @@ public class RadarView extends View {
             float y = (data.yDist / range) * r2;
             if (Math.abs(x) <= r2 && Math.abs(y) <= r2) {
                colorPaint.setColor(data.color);
-               canvas.drawCircle(x + r2, y + r2, ID_RADIUS, colorPaint);
+               canvas.drawCircle(r2 + x, r2 - y, ID_RADIUS, colorPaint);
             }
          }
       }

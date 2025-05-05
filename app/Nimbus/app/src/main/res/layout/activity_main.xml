@@ -68,6 +68,7 @@
         android:stepSize="1"
         android:valueFrom="1"
         android:valueTo="50"
+        android:value="5"
         app:labelBehavior="visible" />
 
     <TextView
