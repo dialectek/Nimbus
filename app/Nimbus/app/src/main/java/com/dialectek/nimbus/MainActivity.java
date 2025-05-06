@@ -435,8 +435,8 @@ public class MainActivity extends AppCompatActivity
          if (Duration.between(data.time, now).toSeconds() < MAX_ID_AGE_SECS)
          {
             tmpIDs.put(id, data);
-            appendColoredText(mText, id + ";" + data.distance + "," + data.xDist + "," + data.yDist +
-                    ";" + data.latitude + "," + data.longitude + "\n", data.color);
+            appendColoredText(mText, id + ";lat=" + data.latitude + ",long=" + data.longitude + ";dist=" + data.distance +
+                    ",x=" + data.xDist + ",y=" + data.yDist + "\n", data.color);
          }
       }
       DiscoveredIDs = tmpIDs;
