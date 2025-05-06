@@ -366,6 +366,8 @@ public class MainActivity extends AppCompatActivity
       {
          StringBuilder builder = new StringBuilder(new String(result.getScanRecord().getServiceData(result.getScanRecord().getServiceUuids().get(0)), Charset.forName("UTF-8")));
          String        id      = builder.toString();
+         double latitude = 0.0;
+         double longitude = 0.0;
          float distance = -1.0f;
          float xDist = -1.0f;
          float yDist = -1.0f;
@@ -376,24 +378,22 @@ public class MainActivity extends AppCompatActivity
                if (idLatLong.length >= 2 && mLocation != null) {
                   String[] latLong = idLatLong[1].split(",");
                   if (latLong != null && latLong.length >= 2) {
-                     Double otherLatitude = Double.parseDouble(latLong[0]);
-                     Double otherLongitude = Double.parseDouble(latLong[1]);
-                     Double myLatitude = mLocation.getLatitude();
-                     Double myLongitude = mLocation.getLongitude();
-                     if ((myLatitude != null) && (myLongitude != null)) {
-                        float[] results = new float[1];
-                        Location.distanceBetween(myLatitude, myLongitude, otherLatitude, otherLongitude, results);
-                        distance = results[0];
-                        Location.distanceBetween(myLatitude, myLongitude, myLatitude, otherLongitude, results);
-                        xDist = results[0];
-                        if (myLongitude > otherLongitude) {
-                           xDist = -xDist;
-                        }
-                        Location.distanceBetween(myLatitude, myLongitude, otherLatitude, myLongitude, results);
-                        yDist = results[0];
-                        if (myLatitude > otherLatitude) {
-                           yDist = -yDist;
-                        }
+                     latitude = Double.parseDouble(latLong[0]);
+                     longitude = Double.parseDouble(latLong[1]);
+                     double myLatitude = mLocation.getLatitude();
+                     double myLongitude = mLocation.getLongitude();
+                     float[] results = new float[1];
+                     Location.distanceBetween(myLatitude, myLongitude, latitude, longitude, results);
+                     distance = results[0];
+                     Location.distanceBetween(myLatitude, myLongitude, myLatitude, longitude, results);
+                     xDist = results[0];
+                     if (myLongitude > longitude) {
+                        xDist = -xDist;
+                     }
+                     Location.distanceBetween(myLatitude, myLongitude, latitude, myLongitude, results);
+                     yDist = results[0];
+                     if (myLatitude > latitude) {
+                        yDist = -yDist;
                      }
                   }
                }
@@ -408,13 +408,15 @@ public class MainActivity extends AppCompatActivity
             int green = mRandom.nextInt(256);
             int blue = mRandom.nextInt(256);
             int color = Color.argb(255, red, green, blue);
-            data = new ID(id, color, distance, xDist, yDist, now);
+            data = new ID(id, color, distance, xDist, yDist, latitude, longitude, now);
          }
          else
          {
             data.distance = distance;
             data.xDist = xDist;
             data.yDist = yDist;
+            data.latitude = latitude;
+            data.longitude = longitude;
             data.time = now;
          }
          DiscoveredIDs.put(id, data);
@@ -433,7 +435,8 @@ public class MainActivity extends AppCompatActivity
          if (Duration.between(data.time, now).toSeconds() < MAX_ID_AGE_SECS)
          {
             tmpIDs.put(id, data);
-            appendColoredText(mText, id + ";" + data.distance + "," + data.xDist + "," + data.yDist + "\n", data.color);
+            appendColoredText(mText, id + ";" + data.distance + "," + data.xDist + "," + data.yDist +
+                    ";" + data.latitude + "," + data.longitude + "\n", data.color);
          }
       }
       DiscoveredIDs = tmpIDs;

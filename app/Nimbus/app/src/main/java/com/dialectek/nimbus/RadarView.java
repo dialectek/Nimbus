@@ -88,7 +88,7 @@ public class RadarView extends View {
 
       float r2 = (float)r / 2.0f;
       float bearing = MainActivity.CompassBearing;
-      canvas.rotate( bearing, r2, r2);
+      canvas.rotate( (float)((int)bearing), r2, r2);
 
       Paint colorPaint = new Paint();
       colorPaint.setStyle(Paint.Style.FILL);
@@ -96,7 +96,7 @@ public class RadarView extends View {
       for (Map.Entry<String, ID> entry : MainActivity.DiscoveredIDs.entrySet())
       {
          ID data = entry.getValue();
-         if (data.distance >= 0.0f)
+         if (data.distance >= 0.0f && data.distance <= range)
          {
             float x = (data.xDist / range) * r2;
             float y = (data.yDist / range) * r2;
