@@ -34,7 +34,12 @@ import com.google.android.gms.location.LocationRequest;
 import android.os.Bundle;
 import android.os.Looper;
 import android.os.ParcelUuid;
+import android.text.Html;
 import android.text.Spannable;
+import android.text.SpannableString;
+import android.text.Spanned;
+import android.text.method.LinkMovementMethod;
+import android.text.style.ClickableSpan;
 import android.text.style.ForegroundColorSpan;
 import android.view.View;
 import android.widget.Button;
@@ -120,6 +125,7 @@ public class MainActivity extends AppCompatActivity
 
       setContentView(R.layout.activity_main);
       mText               = (TextView)findViewById(R.id.text);
+      mText.setMovementMethod(LinkMovementMethod.getInstance());
       mScrollContainer    = (ScrollView)findViewById(R.id.scroll_container);
       mBluetoothLeScanner = null;
       mDiscoverActive     = false;
@@ -435,20 +441,28 @@ public class MainActivity extends AppCompatActivity
          if (Duration.between(data.time, now).toSeconds() < MAX_ID_AGE_SECS)
          {
             tmpIDs.put(id, data);
-            appendColoredText(mText, id + ";lat=" + data.latitude + ",long=" + data.longitude + ";dist=" + data.distance +
-                    ",x=" + data.xDist + ",y=" + data.yDist + "\n", data.color);
+            appendText(mText, id,  ";lat=" + data.latitude + ",long=" + data.longitude + ";dist=" + data.distance +
+                    ",dx=" + data.xDist + ",dy=" + data.yDist + "\n", data.color);
          }
       }
       DiscoveredIDs = tmpIDs;
    }
 
-   // Append colored text.
-   public static void appendColoredText(TextView tv, String text, int color) {
+   // Append formatted text.
+   public void appendText(TextView tv, String id, String text, int color) {
       int start = tv.getText().length();
-      tv.append(text);
+      ClickableSpan clickableSpan = new ClickableSpan() {
+         public void onClick(View widget) {
+            Toast.makeText(MainActivity.this, id, Toast.LENGTH_SHORT).show();
+         }
+      };
+      tv.append(id);
       int end = tv.getText().length();
-
       Spannable spannableText = (Spannable) tv.getText();
+      spannableText.setSpan(clickableSpan, start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+      tv.append(text);
+      end = tv.getText().length();
+      spannableText = (Spannable) tv.getText();
       spannableText.setSpan(new ForegroundColorSpan(color), start, end, 0);
    }
 
