@@ -31,6 +31,7 @@ import android.location.Location;
 
 import com.google.android.gms.location.LocationRequest;
 
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Looper;
 import android.os.ParcelUuid;
@@ -112,8 +113,8 @@ public class MainActivity extends AppCompatActivity
    private Sensor magnetometer;
    private float[] accelerometerData = new float[3];
    private float[] magnetometerData = new float[3];
-   private boolean isAccelerometerSet = false;
-   private boolean isMagnetometerSet = false;
+   public static boolean isAccelerometerSet = false;
+   public static boolean isMagnetometerSet = false;
    public static float CompassBearing = 0.0f;
 
    @Override
@@ -453,7 +454,9 @@ public class MainActivity extends AppCompatActivity
       int start = tv.getText().length();
       ClickableSpan clickableSpan = new ClickableSpan() {
          public void onClick(View widget) {
-            Toast.makeText(MainActivity.this, id, Toast.LENGTH_SHORT).show();
+            Intent link = new Intent( Intent.ACTION_VIEW ,
+                    Uri.parse("http://dialectek.com/Nimbus/" + id + ".html"));
+            startActivity(link);
          }
       };
       tv.append(id);

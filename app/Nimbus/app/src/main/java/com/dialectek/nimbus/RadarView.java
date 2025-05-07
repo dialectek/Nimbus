@@ -75,6 +75,7 @@ public class RadarView extends View {
       blackPaint.setColor(Color.BLACK);
       blackPaint.setStyle(Paint.Style.STROKE);
       blackPaint.setStrokeWidth(1.0F);
+      blackPaint.setTextSize(24);
 
       int   i          = r / 2;
       int   j          = i - 1;
@@ -83,12 +84,18 @@ public class RadarView extends View {
       canvas.drawCircle(i, i, j * 3 / 4, blackPaint);
       canvas.drawCircle(i, i, j >> 1, blackPaint);
       canvas.drawCircle(i, i, j >> 2, blackPaint);
-      canvas.drawLine(0, i, r, i, blackPaint);
-      canvas.drawLine(i, 0, i, r, blackPaint);
 
       float r2 = (float)r / 2.0f;
       float bearing = MainActivity.CompassBearing;
       canvas.rotate( (float)((int)bearing), r2, r2);
+      canvas.drawLine(0, i, r, i, blackPaint);
+      canvas.drawLine(i, 0, i, r, blackPaint);
+      if (MainActivity.isAccelerometerSet && MainActivity.isMagnetometerSet) {
+         canvas.drawText("N", i, 24, blackPaint);
+         canvas.drawText("S", i, r - 12, blackPaint);
+         canvas.drawText("E", 6, i, blackPaint);
+         canvas.drawText("W", r - 24, i, blackPaint);
+      }
 
       Paint colorPaint = new Paint();
       colorPaint.setStyle(Paint.Style.FILL);
