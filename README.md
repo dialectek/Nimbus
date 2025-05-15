@@ -1,15 +1,18 @@
 # Nimbus
-Autenticated close range information sharing.
+Close range information sharing for local  cooperation.
 
-Once upon a time, people interacted in high fidelity face-to-face. That multi-layered 
-pipe carrying pheromones to phonemes has become a trickle of bits. Those days are gone 
-and are not coming back. No one is going to give up their devices and connection to the 
-ether. But we can remediate by changing the bandwidth between people, expanding or filtering 
-the pipe. Nimbus aims to address this. Users exude a nimbus of information that is visible 
-in their surroundings. A multiplicity of data may be revealed, some of which can be 
-authenticated by trusted parties. Every day, people encounter strangers that are evaluated 
-based on generalizations. A bane of generalization is that it at times causes unfair stereotyping. 
-Nimbus can help.
+Once upon a time, people interacted in high fidelity face-to-face. That multi-channeled pipe 
+carrying pheromones to phonemes has become a trickle of bits. Those days are gone and are 
+probably not coming back soon. No one is going to give up their devices and connection to 
+the ether. But we can ameliorate by changing the bandwidth between people, expanding or 
+filtering the pipe. Nimbus aims to address this. Users exude a "nimbus" of information that 
+is visible in their geographical surroundings. A multiplicity of data may be revealed, enabling 
+a plethora of possible cooperative activities. For example, a group of people convening at a 
+social event could become familiarized with each other by perusing each other's profiles. 
+Alternatively, a business could scan in-store patron profiles to make customized offers. 
+Participant information could be authenticated by trusted parties to foster trust. Without 
+knowledge of individuals, people often stereotype based on generalizations, sometimes to 
+tragic outcomes. Sharing authentic information published by individuals can help avoid stereotyping.
 
 Some usages:
 1. A customer enters a store. The storekeeper is informed what the customer is looking for and 
