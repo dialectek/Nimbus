@@ -14,7 +14,7 @@ Participant information could be authenticated by trusted parties to foster trus
 knowledge of individuals, people often stereotype based on generalizations, sometimes to 
 tragic outcomes. Sharing authentic information published by individuals can help avoid stereotyping.
 
-Some usages:
+Some use cases:
 1. A customer enters a store. The storekeeper is informed what the customer is looking for and 
    if the customer is trustworthy (no criminal record, etc.).
 2. A man attends a social gathering and informs women in the vicinity of some personal information, 
