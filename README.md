@@ -21,3 +21,9 @@ Some use cases:
    including being a safe person to talk to and/or leave with.
 3. A police car passes a car and the driver's nimbus vouches for their good driving record.
 4. Shy people let their AIs commune a bit before proceeding on a more personal basis.
+
+Architecture:
+<img src="http://dialectek.com/Nimbus/Nimbus_arch.png" width="400" height="200" />
+
+Prototype:
+<img src="http://dialectek.com/Nimbus/Nimbus_prototype.png" width="200" height="400" />
