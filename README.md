@@ -23,7 +23,9 @@ Some use cases:
 4. Shy people let their AIs commune a bit before proceeding on a more personal basis.
 
 Architecture:
-<img src="http://dialectek.com/Nimbus/Nimbus_arch.png" width="400" height="200" />
-
+<br>
+<img src="http://dialectek.com/Nimbus/Nimbus_arch.png" width="500" height="300" />
+<p>
 Prototype:
-<img src="http://dialectek.com/Nimbus/Nimbus_prototype.png" width="200" height="400" />
+<br>
+<img src="http://dialectek.com/Nimbus/Nimbus_prototype.png" width="300" height="400" />
