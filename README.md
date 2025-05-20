@@ -28,4 +28,4 @@ Architecture:
 <p>
 Prototype:
 <br>
-<img src="http://dialectek.com/Nimbus/Nimbus_prototype.png" width="300" height="400" />
+<img src="http://dialectek.com/Nimbus/Nimbus_prototype.png" width="250" height="400" />
