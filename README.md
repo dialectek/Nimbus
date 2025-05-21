@@ -22,7 +22,7 @@ Some use cases:
 3. A police car passes a car and the driver's nimbus vouches for their good driving record.
 4. Shy people let their AIs commune a bit before proceeding on a more personal basis.
 
-Architecture:
+Operation:
 <br>
 <img src="http://dialectek.com/Nimbus/Nimbus_arch.png" width="500" height="300" />
 <p>
