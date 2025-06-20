@@ -72,8 +72,6 @@ import java.util.UUID;
 
 public class MainActivity extends AppCompatActivity
         implements View.OnClickListener, SensorEventListener {
-   public static String username;
-   public static String password;
    public static String id;
 
    // UI.
