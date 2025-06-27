@@ -35,9 +35,8 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Looper;
 import android.os.ParcelUuid;
-import android.text.Html;
+import android.provider.Settings;
 import android.text.Spannable;
-import android.text.SpannableString;
 import android.text.Spanned;
 import android.text.method.LinkMovementMethod;
 import android.text.style.ClickableSpan;
@@ -59,6 +58,7 @@ import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.Priority;
 import com.google.android.material.slider.LabelFormatter;
 import com.google.android.material.slider.Slider;
+import com.google.android.material.textfield.TextInputEditText;
 
 import java.nio.charset.Charset;
 import java.time.Duration;
@@ -70,11 +70,15 @@ import java.util.Random;
 import java.util.TreeMap;
 import java.util.UUID;
 
+import org.java_websocket.client.WebSocketClient;
+import org.java_websocket.handshake.ServerHandshake;
+
 public class MainActivity extends AppCompatActivity
         implements View.OnClickListener, SensorEventListener {
    public static String id;
 
    // UI.
+   private TextView mIDtext;
    private TextView      mText;
    private ScrollView    mScrollContainer;
    private Button        mAdvertiseButton;
@@ -123,6 +127,15 @@ public class MainActivity extends AppCompatActivity
       Eula.show(this);
 
       setContentView(R.layout.activity_main);
+      mIDtext       = findViewById(R.id.id);
+      id = Settings.Secure.getString(
+              getApplicationContext().getContentResolver(),
+              Settings.Secure.ANDROID_ID);
+      if (id == null) {
+         Toast.makeText(getBaseContext(), "Cannot get ANDROID_ID", Toast.LENGTH_SHORT).show();
+         id = "unknown";
+      }
+      mIDtext.setText(id);
       mText               = (TextView)findViewById(R.id.text);
       mText.setMovementMethod(LinkMovementMethod.getInstance());
       mScrollContainer    = (ScrollView)findViewById(R.id.scroll_container);
