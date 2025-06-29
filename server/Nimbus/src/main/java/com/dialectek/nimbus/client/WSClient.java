@@ -6,6 +6,8 @@ import java.util.logging.Logger;
 
 @ClientEndpoint
 public class WSClient {
+	
+	public static String id = "tom";
 
     private Logger logger = Logger.getLogger(this.getClass().getName());
 
@@ -13,7 +15,7 @@ public class WSClient {
     public void onOpen(Session session) {
         logger.info("Connected ... " + session.getId());
         try {
-            session.getBasicRemote().sendText("id_to_name:tom");
+            session.getBasicRemote().sendText("id_to_name:" + id);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

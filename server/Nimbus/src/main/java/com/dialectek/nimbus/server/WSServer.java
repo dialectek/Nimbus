@@ -28,7 +28,8 @@ public class WSServer {
     	logger.info("Message from client: " + msg);   	
         try {
         	if (msg.startsWith("id_to_name:")) {
-        		String name = idToName(msg);
+        		String id = msg.split(":")[1];         		
+        		String name = idToName(id);
         		if (name != null) {
     	        	session.getBasicRemote().sendText("id_to_name:" + name);       			
         		} else {
@@ -57,9 +58,9 @@ public class WSServer {
     
     // Get name from id.
     public String idToName(String id) 
-    {
+    {  	
         new File(ID_TO_NAME_RESULTS_FILE_NAME).delete();
-        ProcessBuilder processBuilder = new ProcessBuilder("python", ID_TO_NAME_FILE_NAME, id);
+        ProcessBuilder processBuilder = new ProcessBuilder("python", ID_TO_NAME_FILE_NAME, "id_to_name:" + id);
         processBuilder.inheritIO();
         Process          process = null;
        try

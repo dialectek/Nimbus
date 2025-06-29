@@ -13,6 +13,10 @@ public class NimbusClient {
     private static CountDownLatch latch;
 
     public static void main(String[] args) {
+    	if (args.length == 1)
+    	{
+    		WSClient.id = args[0];
+    	}
         latch = new CountDownLatch(1);
         ClientManager client = ClientManager.createClient();
         try {

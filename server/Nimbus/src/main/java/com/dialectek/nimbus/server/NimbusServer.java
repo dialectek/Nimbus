@@ -1,5 +1,7 @@
 package com.dialectek.nimbus.server;
 
+import java.util.concurrent.CountDownLatch;
+
 import org.glassfish.tyrus.server.Server;
 
 public class NimbusServer {
@@ -7,14 +9,15 @@ public class NimbusServer {
     public static void main(String[] args) {
         runServer();
     }
-
+    
+    private static CountDownLatch latch;
+    
     public static void runServer() {
+        latch = new CountDownLatch(1);    	
         Server server = new Server("localhost", 8025, "/ws", WSServer.class);
         try {
             server.start();
-            while (true) {
-            	Thread.sleep(10000);
-            }
+            latch.await();           
         } catch (Exception e) {
             throw new RuntimeException(e);
         } finally {
