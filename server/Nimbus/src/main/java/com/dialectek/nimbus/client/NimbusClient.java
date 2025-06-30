@@ -13,14 +13,19 @@ public class NimbusClient {
     private static CountDownLatch latch;
 
     public static void main(String[] args) {
-    	if (args.length == 1)
+    	String host = "localhost";
+    	if (args.length >= 1)
     	{
     		WSClient.id = args[0];
     	}
+    	if (args.length == 2)
+    	{
+    		host = args[1];
+    	}    	
         latch = new CountDownLatch(1);
         ClientManager client = ClientManager.createClient();
         try {
-            client.connectToServer(WSClient.class, new URI("ws://localhost:8025/ws/server"));
+            client.connectToServer(WSClient.class, new URI("ws://" + host + ":8025/ws/server"));
             latch.await();
 
         } catch (DeploymentException | URISyntaxException | InterruptedException e) {
