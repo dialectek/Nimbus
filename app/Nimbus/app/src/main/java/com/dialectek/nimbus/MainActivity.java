@@ -58,8 +58,9 @@ import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.Priority;
 import com.google.android.material.slider.LabelFormatter;
 import com.google.android.material.slider.Slider;
-import com.google.android.material.textfield.TextInputEditText;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.charset.Charset;
 import java.time.Duration;
 import java.time.Instant;
@@ -75,12 +76,12 @@ import org.java_websocket.handshake.ServerHandshake;
 
 public class MainActivity extends AppCompatActivity
         implements View.OnClickListener, SensorEventListener {
-   public static String id;
 
    // UI.
-   private TextView mIDtext;
-   private TextView      mText;
-   private ScrollView    mScrollContainer;
+   private String mName;
+   private TextView mNameText;
+   private TextView      mDiscoveredText;
+   private ScrollView    mDiscoveredScroll;
    private Button        mAdvertiseButton;
    private boolean       mAdvertiseActive;
    private Button        mDiscoverButton;
@@ -119,6 +120,10 @@ public class MainActivity extends AppCompatActivity
    public static boolean isMagnetometerSet = false;
    public static float CompassBearing = 0.0f;
 
+   // Server.
+   private final String SERVER_ADDRESS = "ec2-3-21-97-64.us-east-2.compute.amazonaws.com";
+   private WebSocketClient mClient;
+
    @Override
    protected void onCreate(Bundle savedInstanceState)
    {
@@ -127,18 +132,20 @@ public class MainActivity extends AppCompatActivity
       Eula.show(this);
 
       setContentView(R.layout.activity_main);
-      mIDtext       = findViewById(R.id.id);
-      id = Settings.Secure.getString(
+      mNameText       = findViewById(R.id.name_text);
+      String id = Settings.Secure.getString(
               getApplicationContext().getContentResolver(),
               Settings.Secure.ANDROID_ID);
       if (id == null) {
          Toast.makeText(getBaseContext(), "Cannot get ANDROID_ID", Toast.LENGTH_SHORT).show();
          id = "unknown";
       }
-      mIDtext.setText(id);
-      mText               = (TextView)findViewById(R.id.text);
-      mText.setMovementMethod(LinkMovementMethod.getInstance());
-      mScrollContainer    = (ScrollView)findViewById(R.id.scroll_container);
+      connectServer();
+      mName = id;
+      mNameText.setText(mName);
+      mDiscoveredText               = (TextView)findViewById(R.id.discovered_text);
+      mDiscoveredText.setMovementMethod(LinkMovementMethod.getInstance());
+      mDiscoveredScroll    = (ScrollView)findViewById(R.id.discovered_scroll);
       mBluetoothLeScanner = null;
       mDiscoverActive     = false;
       mDiscoverButton     = (Button)findViewById(R.id.discover_btn);
@@ -186,7 +193,7 @@ public class MainActivity extends AppCompatActivity
                Double longitude = mLocation.getLongitude();
                if ((latitude != null) && (longitude != null))
                {
-                  String        serviceData = id + ";" + latitude + "," + longitude;
+                  String        serviceData = mName + ";" + latitude + "," + longitude;
                   AdvertiseData data        = new AdvertiseData.Builder()
                                                  .addServiceUuid(mUuid)
                                                  .addServiceData(mUuid, serviceData.getBytes(Charset.forName("UTF-8")))
@@ -383,18 +390,18 @@ public class MainActivity extends AppCompatActivity
       if (result != null)
       {
          StringBuilder builder = new StringBuilder(new String(result.getScanRecord().getServiceData(result.getScanRecord().getServiceUuids().get(0)), Charset.forName("UTF-8")));
-         String        id      = builder.toString();
+         String        name      = builder.toString();
          double latitude = 0.0;
          double longitude = 0.0;
          float distance = -1.0f;
          float xDist = -1.0f;
          float yDist = -1.0f;
-         if (id.contains(";")) {
-            String[] idLatLong = id.split(";");
-            if (idLatLong != null && idLatLong.length > 0) {
-               id = idLatLong[0];
-               if (idLatLong.length >= 2 && mLocation != null) {
-                  String[] latLong = idLatLong[1].split(",");
+         if (name.contains(";")) {
+            String[] nameLatLong = name.split(";");
+            if (nameLatLong != null && nameLatLong.length > 0) {
+               name = nameLatLong[0];
+               if (nameLatLong.length >= 2 && mLocation != null) {
+                  String[] latLong = nameLatLong[1].split(",");
                   if (latLong != null && latLong.length >= 2) {
                      latitude = Double.parseDouble(latLong[0]);
                      longitude = Double.parseDouble(latLong[1]);
@@ -418,15 +425,15 @@ public class MainActivity extends AppCompatActivity
             }
          }
          Instant       now     = Instant.now();
-         ID data    = DiscoveredIDs.get(id);
+         ID data    = DiscoveredIDs.get(name);
          if (data == null)
          {
-            mRandom.setSeed(id.hashCode());
+            mRandom.setSeed(name.hashCode());
             int red = mRandom.nextInt(256);
             int green = mRandom.nextInt(256);
             int blue = mRandom.nextInt(256);
             int color = Color.argb(255, red, green, blue);
-            data = new ID(id, color, distance, xDist, yDist, latitude, longitude, now);
+            data = new ID(name, color, distance, xDist, yDist, latitude, longitude, now);
          }
          else
          {
@@ -437,14 +444,14 @@ public class MainActivity extends AppCompatActivity
             data.longitude = longitude;
             data.time = now;
          }
-         DiscoveredIDs.put(id, data);
+         DiscoveredIDs.put(name, data);
          refreshIDs(now);
       }
    }
 
    // Refresh IDs.
    private synchronized void refreshIDs(Instant now) {
-      mText.setText("");
+      mDiscoveredText.setText("");
       TreeMap<String, ID> tmpIDs = new TreeMap<String, ID>();
       for (Map.Entry<String, ID> entry : DiscoveredIDs.entrySet())
       {
@@ -453,7 +460,7 @@ public class MainActivity extends AppCompatActivity
          if (Duration.between(data.time, now).toSeconds() < MAX_ID_AGE_SECS)
          {
             tmpIDs.put(id, data);
-            appendText(mText, id,  ";lat=" + data.latitude + ",long=" + data.longitude + ";dist=" + data.distance +
+            appendText(mDiscoveredText, id,  ";lat=" + data.latitude + ",long=" + data.longitude + ";dist=" + data.distance +
                     ",dx=" + data.xDist + ",dy=" + data.yDist + "\n", data.color);
          }
       }
@@ -584,7 +591,7 @@ public class MainActivity extends AppCompatActivity
 
       mUuid = new ParcelUuid(UUID.fromString(getString(R.string.ble_uuid)));
 
-      String        serviceData = id + ";";
+      String        serviceData = mName + ";";
       AdvertiseData data        = new AdvertiseData.Builder()
                                      .addServiceUuid(mUuid)
                                      .addServiceData(mUuid, serviceData.getBytes(Charset.forName("UTF-8")))
@@ -593,7 +600,7 @@ public class MainActivity extends AppCompatActivity
                                      .build();
 
       AdvertiseData scanResponse = new AdvertiseData.Builder()
-                                      .addServiceData(mUuid, id.getBytes(Charset.forName("UTF-8")))
+                                      .addServiceData(mUuid, mName.getBytes(Charset.forName("UTF-8")))
                                       .build();
 
       try {
@@ -655,7 +662,7 @@ public class MainActivity extends AppCompatActivity
       else if (v.getId() == R.id.clear_discovered_btn)
       {
          DiscoveredIDs.clear();
-         mText.setText("");
+         mDiscoveredText.setText("");
       }
    }
 
@@ -694,4 +701,54 @@ public class MainActivity extends AppCompatActivity
 
    @Override
    public void onAccuracyChanged(Sensor sensor, int accuracy) {}
+
+   // Server communications.
+   private void connectServer() {
+      URI uri;
+      try {
+         uri = new URI("ws://" + SERVER_ADDRESS + ":8025/ws/server");
+      } catch (URISyntaxException e) {
+         Toast.makeText(this, "Invalid server URI", Toast.LENGTH_SHORT).show();
+         return;
+      }
+
+      mClient = new WebSocketClient(uri) {
+         @Override
+         public void onOpen(ServerHandshake serverHandshake) {
+            //toastMessage("Server connection opened");
+            try {
+               send("id_to_name:alice");
+            } catch (Exception e) {
+               String ex = e.getMessage();
+               String ex2 = ex;
+            }
+         }
+
+         @Override
+         public void onMessage(String s) {
+            final String message = s;
+            toastMessage("Message from server: " + message);
+         }
+
+         @Override
+         public void onClose(int i, String s, boolean b) {
+            toastMessage("Server connection closed: " + s);
+         }
+
+         @Override
+         public void onError(Exception e) {
+            toastMessage("Server connection error: " + e.getMessage());
+         }
+
+         private void toastMessage(String message) {
+            runOnUiThread(new Runnable() {
+               @Override
+               public void run() {
+                  Toast.makeText(getApplicationContext(), message, Toast.LENGTH_SHORT).show();
+               }
+            });
+         }
+      };
+      mClient.connect();
+   }
 }
