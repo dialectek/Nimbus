@@ -78,7 +78,8 @@ public class MainActivity extends AppCompatActivity
         implements View.OnClickListener, SensorEventListener {
 
    // UI.
-   private String mName;
+   private String mName = null;
+   private String mID = null;
    private TextView mNameText;
    private TextView      mDiscoveredText;
    private ScrollView    mDiscoveredScroll;
@@ -133,16 +134,13 @@ public class MainActivity extends AppCompatActivity
 
       setContentView(R.layout.activity_main);
       mNameText       = findViewById(R.id.name_text);
-      String id = Settings.Secure.getString(
+      mID = Settings.Secure.getString(
               getApplicationContext().getContentResolver(),
               Settings.Secure.ANDROID_ID);
-      if (id == null) {
+      if (mID == null) {
          Toast.makeText(getBaseContext(), "Cannot get ANDROID_ID", Toast.LENGTH_SHORT).show();
-         id = "unknown";
       }
       connectServer();
-      mName = id;
-      mNameText.setText(mName);
       mDiscoveredText               = (TextView)findViewById(R.id.discovered_text);
       mDiscoveredText.setMovementMethod(LinkMovementMethod.getInstance());
       mDiscoveredScroll    = (ScrollView)findViewById(R.id.discovered_scroll);
@@ -187,7 +185,7 @@ public class MainActivity extends AppCompatActivity
          {
             super.onLocationResult(locationResult);
             mLocation = locationResult.getLastLocation();
-            if (mAdvertisingSet != null)
+            if (mName != null && mAdvertisingSet != null)
             {
                Double latitude  = mLocation.getLatitude();
                Double longitude = mLocation.getLongitude();
@@ -566,6 +564,11 @@ public class MainActivity extends AppCompatActivity
 
    private void startAdvertise()
    {
+      if (mName == null) {
+         Toast.makeText(getBaseContext(), "Cannot start advertising: name unavailable", Toast.LENGTH_SHORT).show();
+         return;
+      }
+
       // Check if features are supported
       BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
 
@@ -715,18 +718,19 @@ public class MainActivity extends AppCompatActivity
       mClient = new WebSocketClient(uri) {
          @Override
          public void onOpen(ServerHandshake serverHandshake) {
-            //toastMessage("Server connection opened");
-            try {
-               send("id_to_name:alice");
-            } catch (Exception e) {
-               String ex = e.getMessage();
-               String ex2 = ex;
+            if (mID != null) {
+               send("id_to_name:" + mID);
             }
+            toastMessage("Connected to server");
          }
 
          @Override
          public void onMessage(String s) {
             final String message = s;
+            if (message.startsWith("id_to_name:")) {
+               mName = message.split(":")[1];
+               mNameText.setText(mName);
+            }
             toastMessage("Message from server: " + message);
          }
 

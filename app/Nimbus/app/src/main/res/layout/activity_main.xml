@@ -23,7 +23,8 @@
             android:enabled="false"
             android:textColor="@color/black"
             android:textSize="14sp"
-            android:gravity="center" />
+            android:gravity="center"
+            android:text="@string/name" />
 
         <Button
             android:id="@+id/advertise_btn"
