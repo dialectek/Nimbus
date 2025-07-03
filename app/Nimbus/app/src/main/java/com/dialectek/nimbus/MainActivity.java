@@ -276,7 +276,7 @@ public class MainActivity extends AppCompatActivity
       super.onRequestPermissionsResult(requestCode, permissions, grantResults);
       if (requestCode == 2)
       {
-         if (grantResults.length >= 4)
+         if (grantResults.length >= 5)
          {
             boolean locationGranted = grantResults[0] == PackageManager.PERMISSION_GRANTED;
             if (!locationGranted)
@@ -656,10 +656,14 @@ public class MainActivity extends AppCompatActivity
          }
          else
          {
-            startAdvertise();
-            mAdvertiseButton.setTextColor(Color.RED);
-            mAdvertiseButton.setText("Stop Advertising");
-            mAdvertiseActive = true;
+            if (mName == null) {
+               Toast.makeText(getBaseContext(), "Cannot start advertising: name unavailable", Toast.LENGTH_SHORT).show();
+            } else {
+               startAdvertise();
+               mAdvertiseButton.setTextColor(Color.RED);
+               mAdvertiseButton.setText("Stop Advertising");
+               mAdvertiseActive = true;
+            }
          }
       }
       else if (v.getId() == R.id.clear_discovered_btn)
@@ -725,8 +729,7 @@ public class MainActivity extends AppCompatActivity
          }
 
          @Override
-         public void onMessage(String s) {
-            final String message = s;
+         public void onMessage(String message) {
             if (message.startsWith("id_to_name:")) {
                mName = message.split(":")[1];
                mNameText.setText(mName);

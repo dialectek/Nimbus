@@ -5,23 +5,27 @@ import java.util.concurrent.CountDownLatch;
 import org.glassfish.tyrus.server.Server;
 
 public class NimbusServer {
+   public static void main(String[] args)
+   {
+      runServer();
+   }
 
-    public static void main(String[] args) {
-        runServer();
-    }
-    
-    private static CountDownLatch latch;
-    
-    public static void runServer() {
-        latch = new CountDownLatch(1);    	
-        Server server = new Server("localhost", 8025, "/ws", WSServer.class);
-        try {
-            server.start();
-            latch.await();           
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        } finally {
-            server.stop();
-        }
-    }
+
+   private static CountDownLatch latch;
+
+   public static void runServer()
+   {
+      latch = new CountDownLatch(1);
+      Server server = new Server("localhost", 8025, "/ws", WSServer.class );
+      try {
+         server.start();
+         latch.await();
+      }
+      catch (Exception e) {
+         throw new RuntimeException(e);
+      }
+      finally {
+         server.stop();
+      }
+   }
 }
