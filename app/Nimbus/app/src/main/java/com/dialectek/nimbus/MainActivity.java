@@ -140,7 +140,6 @@ public class MainActivity extends AppCompatActivity
       if (mID == null) {
          Toast.makeText(getBaseContext(), "Cannot get ANDROID_ID", Toast.LENGTH_SHORT).show();
       }
-      connectServer();
       mDiscoveredText               = (TextView)findViewById(R.id.discovered_text);
       mDiscoveredText.setMovementMethod(LinkMovementMethod.getInstance());
       mDiscoveredScroll    = (ScrollView)findViewById(R.id.discovered_scroll);
@@ -228,6 +227,8 @@ public class MainActivity extends AppCompatActivity
    protected void onStart()
    {
       super.onStart();
+      mName = null;
+      connectServer();
       mAdvertiser         = null;
       mBluetoothLeScanner = null;
       requestPermissionsAndEnable();
