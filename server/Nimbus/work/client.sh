@@ -1,1 +1,1 @@
-java -jar ../bin/nimbus_client.jar ${@}
+java -jar ../bin/client.jar ${@}

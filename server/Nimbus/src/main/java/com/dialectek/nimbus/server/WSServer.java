@@ -11,7 +11,8 @@ import java.io.InputStreamReader;
 import java.util.logging.Logger;
 
 @ServerEndpoint(value = "/server")
-public class WSServer {
+public class WSServer
+{
    private static final String ID_TO_NAME_FILE_NAME         = "id_to_name.py";
    private static final String ID_TO_NAME_RESULTS_FILE_NAME = "id_to_name.txt";
 
@@ -28,27 +29,68 @@ public class WSServer {
    public void onMessage(Session session, String msg)
    {
       logger.info("Message from client: " + msg);
-      try {
-         if (msg.startsWith("id_to_name:"))
+      try
+      {
+         if ((msg != null) && msg.contains(":"))
          {
-            String id   = msg.split(":")[1];
-            String name = idToName(id);
-            if (name != null)
+            String[] parts = msg.split(":");
+            String op   = parts[0];
+            String args = parts[1];
+            if (op.equals("id_to_name"))
             {
-               session.getBasicRemote().sendText("id_to_name:" + name);
+               String id   = args;
+               String name = idToName(id);
+               if (name != null)
+               {
+                  NimbusServer.connections.put(name, session);
+                  session.getBasicRemote().sendText("id_to_name:" + name);
+               }
+               else
+               {
+                  session.getBasicRemote().sendText("id_to_name:error");
+               }
+            }
+            else if (op.equals("peer_message"))
+            {
+               parts = args.split(";");
+               if ((parts != null) && (parts.length == 2))
+               {
+                  String  peer_name    = parts[0];
+                  String  peer_msg     = parts[1];
+                  Session peer_session = NimbusServer.connections.get(peer_name);
+                  if (peer_session != null)
+                  {
+                     try
+                     {
+                        peer_session.getBasicRemote().sendText("peer_message:" + peer_msg);
+                     }
+                     catch (IOException e)
+                     {
+                        session.getBasicRemote().sendText("peer_message:cannot send message to " + peer_name);
+                     }
+                  }
+                  else
+                  {
+                     session.getBasicRemote().sendText("peer_message:unknown peer name " + peer_name);
+                  }
+               }
+               else
+               {
+                  session.getBasicRemote().sendText("peer_message:invalid message " + msg);
+               }
             }
             else
             {
-               session.getBasicRemote().sendText("id_to_name:error");
+               session.getBasicRemote().sendText("unknown_message:" + msg);
             }
          }
          else
          {
-            session.getBasicRemote().sendText("Unknown message:" + msg);
+            session.getBasicRemote().sendText("unknown_message:" + msg);
          }
       }
-      catch (IOException e) {
-         //throw new RuntimeException(e);
+      catch (IOException e)
+      {
          logger.info(e.getMessage());
       }
    }

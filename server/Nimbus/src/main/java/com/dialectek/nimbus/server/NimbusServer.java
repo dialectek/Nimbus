@@ -1,12 +1,20 @@
 package com.dialectek.nimbus.server;
 
+import java.util.TreeMap;
 import java.util.concurrent.CountDownLatch;
+
+import javax.websocket.Session;
 
 import org.glassfish.tyrus.server.Server;
 
-public class NimbusServer {
+public class NimbusServer
+{
+   // Connections.
+   public static TreeMap<String, Session> connections;
+
    public static void main(String[] args)
    {
+      connections = new TreeMap<String, Session>();
       runServer();
    }
 
@@ -21,7 +29,8 @@ public class NimbusServer {
          server.start();
          latch.await();
       }
-      catch (Exception e) {
+      catch (Exception e)
+      {
          throw new RuntimeException(e);
       }
       finally {

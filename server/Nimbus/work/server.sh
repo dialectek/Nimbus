@@ -1,1 +1,1 @@
-java -jar ../bin/nimbus_server.jar
+java -jar ../bin/server.jar
