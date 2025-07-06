@@ -4,6 +4,7 @@ package com.dialectek.nimbus;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
@@ -43,6 +44,7 @@ import android.text.style.ClickableSpan;
 import android.text.style.ForegroundColorSpan;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -467,16 +469,28 @@ public class MainActivity extends AppCompatActivity
    }
 
    // Append formatted text.
-   public void appendText(TextView tv, String id, String text, int color) {
+   public void appendText(TextView tv, String peerName, String text, int color) {
       int start = tv.getText().length();
       ClickableSpan clickableSpan = new ClickableSpan() {
          public void onClick(View widget) {
-            Intent link = new Intent( Intent.ACTION_VIEW ,
-                    Uri.parse("http://dialectek.com/Nimbus/" + id + ".html"));
-            startActivity(link);
+            if (mName != null) {
+               AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(MainActivity.this);
+               alertDialogBuilder.setTitle("Enter message");
+               final EditText input = new EditText(MainActivity.this);
+               alertDialogBuilder.setView(input);
+               alertDialogBuilder.setPositiveButton("OK", (dialog, which) -> {
+                  String inputText = input.getText().toString();
+                  mClient.send("peer_message:" + peerName + ";" + inputText);
+               });
+               alertDialogBuilder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
+               AlertDialog alertDialog = alertDialogBuilder.create();
+               alertDialog.show();
+            } else {
+               Toast.makeText(getBaseContext(), "Cannot send peer message: local name unavailable", Toast.LENGTH_SHORT).show();
+            }
          }
       };
-      tv.append(id);
+      tv.append(peerName);
       int end = tv.getText().length();
       Spannable spannableText = (Spannable) tv.getText();
       spannableText.setSpan(clickableSpan, start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
@@ -486,6 +500,7 @@ public class MainActivity extends AppCompatActivity
       spannableText.setSpan(new ForegroundColorSpan(color), start, end, 0);
    }
 
+   // Start discovery.
    private void startDiscover()
    {
       List<ScanFilter> filters = new ArrayList<ScanFilter>();
@@ -507,7 +522,7 @@ public class MainActivity extends AppCompatActivity
       }
    }
 
-
+   // Stop discovery.
    private void stopDiscover()
    {
       try {
