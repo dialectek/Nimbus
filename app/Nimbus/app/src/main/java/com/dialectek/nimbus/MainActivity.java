@@ -475,7 +475,7 @@ public class MainActivity extends AppCompatActivity
          public void onClick(View widget) {
             if (mName != null) {
                AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(MainActivity.this);
-               alertDialogBuilder.setTitle("Enter message");
+               alertDialogBuilder.setTitle("Enter message to " + peerName);
                final EditText input = new EditText(MainActivity.this);
                alertDialogBuilder.setView(input);
                alertDialogBuilder.setPositiveButton("OK", (dialog, which) -> {
@@ -767,7 +767,7 @@ public class MainActivity extends AppCompatActivity
             runOnUiThread(new Runnable() {
                @Override
                public void run() {
-                  Toast.makeText(getApplicationContext(), message, Toast.LENGTH_SHORT).show();
+                  Toast.makeText(getApplicationContext(), message, Toast.LENGTH_LONG).show();
                }
             });
          }

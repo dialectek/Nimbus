@@ -1,3 +1,5 @@
+// Nimbus server.
+
 package com.dialectek.nimbus.server;
 
 import javax.websocket.*;
@@ -52,31 +54,39 @@ public class WSServer
             }
             else if (op.equals("peer_message"))
             {
-               parts = args.split(";");
-               if ((parts != null) && (parts.length == 2))
+               String from_name = NimbusServer.connections.getKeyByValue(session);
+               if (from_name != null)
                {
-                  String  peer_name    = parts[0];
-                  String  peer_msg     = parts[1];
-                  Session peer_session = NimbusServer.connections.get(peer_name);
-                  if (peer_session != null)
+                  parts = args.split(";");
+                  if ((parts != null) && (parts.length == 2))
                   {
-                     try
+                     String  to_name    = parts[0];
+                     String  message    = parts[1];
+                     Session to_session = NimbusServer.connections.getValueByKey(to_name);
+                     if (to_session != null)
                      {
-                        peer_session.getBasicRemote().sendText("peer_message:" + peer_msg);
+                        try
+                        {
+                           to_session.getBasicRemote().sendText("peer_message:" + from_name + ";" + message);
+                        }
+                        catch (IOException e)
+                        {
+                           session.getBasicRemote().sendText("peer_message:cannot send message from " + from_name + " to " + to_name);
+                        }
                      }
-                     catch (IOException e)
+                     else
                      {
-                        session.getBasicRemote().sendText("peer_message:cannot send message to " + peer_name);
+                        session.getBasicRemote().sendText("peer_message:unknown peer destination name " + to_name);
                      }
                   }
                   else
                   {
-                     session.getBasicRemote().sendText("peer_message:unknown peer name " + peer_name);
+                     session.getBasicRemote().sendText("peer_message:invalid message " + msg);
                   }
                }
                else
                {
-                  session.getBasicRemote().sendText("peer_message:invalid message " + msg);
+                  session.getBasicRemote().sendText("peer_message:unknown peer source");
                }
             }
             else
