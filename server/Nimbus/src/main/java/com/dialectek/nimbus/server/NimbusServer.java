@@ -3,19 +3,16 @@
 package com.dialectek.nimbus.server;
 
 import java.util.concurrent.CountDownLatch;
-
-import javax.websocket.Session;
-
 import org.glassfish.tyrus.server.Server;
 
 public class NimbusServer
 {
    // Connections.
-   public static BidirectionalMap<String, Session> connections;
+   public static NameToSessionMap connections;
 
    public static void main(String[] args)
    {
-      connections = new BidirectionalMap<String, Session>();
+      connections = new NameToSessionMap();
       runServer();
    }
 

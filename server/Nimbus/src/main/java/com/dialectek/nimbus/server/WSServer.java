@@ -54,7 +54,7 @@ public class WSServer
             }
             else if (op.equals("peer_message"))
             {
-               String from_name = NimbusServer.connections.getKeyByValue(session);
+               String from_name = NimbusServer.connections.getNameBySession(session);
                if (from_name != null)
                {
                   parts = args.split(";");
@@ -62,7 +62,7 @@ public class WSServer
                   {
                      String  to_name    = parts[0];
                      String  message    = parts[1];
-                     Session to_session = NimbusServer.connections.getValueByKey(to_name);
+                     Session to_session = NimbusServer.connections.getSessionByName(to_name);
                      if (to_session != null)
                      {
                         try
