@@ -51,7 +51,7 @@ public class NimbusClient
          }
          catch (IOException e)
          {
-            System.err.println("Cannot send messaage: " + e.getMessage());
+            System.err.println("Cannot send message: " + e.getMessage());
          }
       }
       scanner.close();

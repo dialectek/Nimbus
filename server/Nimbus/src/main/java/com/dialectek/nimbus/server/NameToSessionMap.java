@@ -102,7 +102,7 @@ public class NameToSessionMap
    }
 
 
-   // Remove all name-session pairs from the bidirectional map.
+   // Remove all name-session pairs from the map.
    public void removeAll()
    {
       nameToSessionIdMap.clear();

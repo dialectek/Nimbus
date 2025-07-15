@@ -20,7 +20,7 @@ public class WSClient
       WSClient.session = session;
       try
       {
-         session.getBasicRemote().sendText("id_to_name:" + id);
+         session.getBasicRemote().sendText("request_name:" + id);
       }
       catch (IOException e)
       {

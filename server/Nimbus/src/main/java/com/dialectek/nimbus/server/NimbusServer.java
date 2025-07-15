@@ -2,6 +2,7 @@
 
 package com.dialectek.nimbus.server;
 
+import java.util.TreeMap;
 import java.util.concurrent.CountDownLatch;
 import org.glassfish.tyrus.server.Server;
 
@@ -10,9 +11,17 @@ public class NimbusServer
    // Connections.
    public static NameToSessionMap connections;
 
+   // Prisoner's dilemma agents.
+   public static TreeMap<String, PrisonersDilemmaAgent> agents;
+
+   // Prisoner's dilemma games.
+   public static TreeMap<String, PrisonersDilemmaGame> games;
+
    public static void main(String[] args)
    {
       connections = new NameToSessionMap();
+      agents      = new TreeMap<String, PrisonersDilemmaAgent>();
+      games       = new TreeMap<String, PrisonersDilemmaGame>();
       runServer();
    }
 
