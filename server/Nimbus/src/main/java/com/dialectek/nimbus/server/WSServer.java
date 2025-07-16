@@ -356,6 +356,33 @@ public class WSServer
                   session.getBasicRemote().sendText("game_quit:error;unknnown origin name");
                }
             }
+            else if (op.equals("agent_score"))
+            {
+               String name = NimbusServer.connections.getNameBySession(session);
+               if (name != null)
+               {
+                  PrisonersDilemmaAgent agent = NimbusServer.agents.get(name);
+                  if (agent != null)
+                  {
+                     if (agent.games > 0)
+                     {
+                        session.getBasicRemote().sendText("agent_score:score;" + ((float)agent.outcomes / (float)agent.games) + "(" + agent.outcomes + "/" + agent.games + ")");
+                     }
+                     else
+                     {
+                        session.getBasicRemote().sendText("agent_score:score;0.0(0/0)");
+                     }
+                  }
+                  else
+                  {
+                     session.getBasicRemote().sendText("agent_score:error;agent not found");
+                  }
+               }
+               else
+               {
+                  session.getBasicRemote().sendText("agent_score:error;unknnown agent name");
+               }
+            }
             else
             {
                session.getBasicRemote().sendText("unknown_message:" + msg);
@@ -428,15 +455,15 @@ public class WSServer
          {
             if (game.agentBaction == PrisonersDilemmaGame.COOPERATE)
             {
-               agentA.outcome += PrisonersDilemmaGame.BOTH_COOPERATE;
+               agentA.outcomes += PrisonersDilemmaGame.BOTH_COOPERATE;
                agentA.games++;
-               agentB.outcome += PrisonersDilemmaGame.BOTH_COOPERATE;
+               agentB.outcomes += PrisonersDilemmaGame.BOTH_COOPERATE;
                agentB.games++;
                if (agentA_session != null)
                {
                   try
                   {
-                     agentA_session.getBasicRemote().sendText("game_outcome:complete;both cooperate, score = " + ((float)agentA.outcome / (float)agentA.games) + ", (" + agentA.outcome + "/" + agentA.games + ")");
+                     agentA_session.getBasicRemote().sendText("game_outcome:complete;both cooperate, score = " + ((float)agentA.outcomes / (float)agentA.games) + "(" + agentA.outcomes + "/" + agentA.games + ")");
                   }
                   catch (IOException e) {}
                }
@@ -444,22 +471,22 @@ public class WSServer
                {
                   try
                   {
-                     agentB_session.getBasicRemote().sendText("game_outcome:complete;both cooperate, score = " + ((float)agentB.outcome / (float)agentB.games) + ", (" + agentB.outcome + "/" + agentB.games + ")");
+                     agentB_session.getBasicRemote().sendText("game_outcome:complete;both cooperate, score = " + ((float)agentB.outcomes / (float)agentB.games) + "(" + agentB.outcomes + "/" + agentB.games + ")");
                   }
                   catch (IOException e) {}
                }
             }
             else
             {
-               agentA.outcome += PrisonersDilemmaGame.BETRAYED;
+               agentA.outcomes += PrisonersDilemmaGame.BETRAYED;
                agentA.games++;
-               agentB.outcome += PrisonersDilemmaGame.BETRAYER;
+               agentB.outcomes += PrisonersDilemmaGame.BETRAYER;
                agentB.games++;
                if (agentA_session != null)
                {
                   try
                   {
-                     agentA_session.getBasicRemote().sendText("game_outcome:complete;betrayed, score = " + ((float)agentA.outcome / (float)agentA.games) + ", (" + agentA.outcome + "/" + agentA.games + ")");
+                     agentA_session.getBasicRemote().sendText("game_outcome:complete;betrayed, score = " + ((float)agentA.outcomes / (float)agentA.games) + "(" + agentA.outcomes + "/" + agentA.games + ")");
                   }
                   catch (IOException e) {}
                }
@@ -467,7 +494,7 @@ public class WSServer
                {
                   try
                   {
-                     agentB_session.getBasicRemote().sendText("game_outcome:complete;betrayer, score = " + ((float)agentB.outcome / (float)agentB.games) + ", (" + agentB.outcome + "/" + agentB.games + ")");
+                     agentB_session.getBasicRemote().sendText("game_outcome:complete;betrayer, score = " + ((float)agentB.outcomes / (float)agentB.games) + "(" + agentB.outcomes + "/" + agentB.games + ")");
                   }
                   catch (IOException e) {}
                }
@@ -477,15 +504,15 @@ public class WSServer
          {
             if (game.agentBaction == PrisonersDilemmaGame.COOPERATE)
             {
-               agentA.outcome += PrisonersDilemmaGame.BETRAYER;
+               agentA.outcomes += PrisonersDilemmaGame.BETRAYER;
                agentA.games++;
-               agentB.outcome += PrisonersDilemmaGame.BETRAYED;
+               agentB.outcomes += PrisonersDilemmaGame.BETRAYED;
                agentB.games++;
                if (agentA_session != null)
                {
                   try
                   {
-                     agentA_session.getBasicRemote().sendText("game_outcome:complete;betrayer, score = " + ((float)agentA.outcome / (float)agentA.games) + ", (" + agentA.outcome + "/" + agentA.games + ")");
+                     agentA_session.getBasicRemote().sendText("game_outcome:complete;betrayer, score = " + ((float)agentA.outcomes / (float)agentA.games) + "(" + agentA.outcomes + "/" + agentA.games + ")");
                   }
                   catch (IOException e) {}
                }
@@ -493,22 +520,22 @@ public class WSServer
                {
                   try
                   {
-                     agentB_session.getBasicRemote().sendText("game_outcome:complete;betrayed, score = " + ((float)agentB.outcome / (float)agentB.games) + ", (" + agentB.outcome + "/" + agentB.games + ")");
+                     agentB_session.getBasicRemote().sendText("game_outcome:complete;betrayed, score = " + ((float)agentB.outcomes / (float)agentB.games) + "(" + agentB.outcomes + "/" + agentB.games + ")");
                   }
                   catch (IOException e) {}
                }
             }
             else
             {
-               agentA.outcome += PrisonersDilemmaGame.BOTH_BETRAYED;
+               agentA.outcomes += PrisonersDilemmaGame.BOTH_BETRAYED;
                agentA.games++;
-               agentB.outcome += PrisonersDilemmaGame.BOTH_BETRAYED;
+               agentB.outcomes += PrisonersDilemmaGame.BOTH_BETRAYED;
                agentB.games++;
                if (agentA_session != null)
                {
                   try
                   {
-                     agentA_session.getBasicRemote().sendText("game_outcome:complete;both betrayed, score = " + ((float)agentA.outcome / (float)agentA.games) + ", (" + agentA.outcome + "/" + agentA.games + ")");
+                     agentA_session.getBasicRemote().sendText("game_outcome:complete;both betrayed, score = " + ((float)agentA.outcomes / (float)agentA.games) + "(" + agentA.outcomes + "/" + agentA.games + ")");
                   }
                   catch (IOException e) {}
                }
@@ -516,7 +543,7 @@ public class WSServer
                {
                   try
                   {
-                     agentB_session.getBasicRemote().sendText("game_outcome:complete;both betrayed, score = " + ((float)agentB.outcome / (float)agentB.games) + ", (" + agentB.outcome + "/" + agentB.games + ")");
+                     agentB_session.getBasicRemote().sendText("game_outcome:complete;both betrayed, score = " + ((float)agentB.outcomes / (float)agentB.games) + "(" + agentB.outcomes + "/" + agentB.games + ")");
                   }
                   catch (IOException e) {}
                }
