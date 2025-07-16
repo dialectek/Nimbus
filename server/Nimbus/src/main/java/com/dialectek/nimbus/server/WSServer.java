@@ -453,13 +453,13 @@ public class WSServer
             {
                agentA.outcome += PrisonersDilemmaGame.BETRAYED;
                agentA.games++;
-               agentB.outcome += PrisonersDilemmaGame.BETRAY;
+               agentB.outcome += PrisonersDilemmaGame.BETRAYER;
                agentB.games++;
                if (agentA_session != null)
                {
                   try
                   {
-                     agentA_session.getBasicRemote().sendText("game_outcome:complete;betrayed, score = " + ((float)agentA.outcome / (float)agentA.games) + ", (" + agentB.outcome + "/" + agentB.games + ")");
+                     agentA_session.getBasicRemote().sendText("game_outcome:complete;betrayed, score = " + ((float)agentA.outcome / (float)agentA.games) + ", (" + agentA.outcome + "/" + agentA.games + ")");
                   }
                   catch (IOException e) {}
                }
@@ -467,7 +467,7 @@ public class WSServer
                {
                   try
                   {
-                     agentB_session.getBasicRemote().sendText("game_outcome:complete;betray, score = " + ((float)agentB.outcome / (float)agentB.games) + ", (" + agentA.outcome + "/" + agentA.games + ")");
+                     agentB_session.getBasicRemote().sendText("game_outcome:complete;betrayer, score = " + ((float)agentB.outcome / (float)agentB.games) + ", (" + agentB.outcome + "/" + agentB.games + ")");
                   }
                   catch (IOException e) {}
                }
@@ -477,7 +477,7 @@ public class WSServer
          {
             if (game.agentBaction == PrisonersDilemmaGame.COOPERATE)
             {
-               agentA.outcome += PrisonersDilemmaGame.BETRAY;
+               agentA.outcome += PrisonersDilemmaGame.BETRAYER;
                agentA.games++;
                agentB.outcome += PrisonersDilemmaGame.BETRAYED;
                agentB.games++;
@@ -485,7 +485,7 @@ public class WSServer
                {
                   try
                   {
-                     agentA_session.getBasicRemote().sendText("game_outcome:complete;betray, score = " + ((float)agentA.outcome / (float)agentA.games) + ", (" + agentA.outcome + "/" + agentA.games + ")");
+                     agentA_session.getBasicRemote().sendText("game_outcome:complete;betrayer, score = " + ((float)agentA.outcome / (float)agentA.games) + ", (" + agentA.outcome + "/" + agentA.games + ")");
                   }
                   catch (IOException e) {}
                }
@@ -500,15 +500,15 @@ public class WSServer
             }
             else
             {
-               agentA.outcome += PrisonersDilemmaGame.BOTH_BETRAY;
+               agentA.outcome += PrisonersDilemmaGame.BOTH_BETRAYED;
                agentA.games++;
-               agentB.outcome += PrisonersDilemmaGame.BOTH_BETRAY;
+               agentB.outcome += PrisonersDilemmaGame.BOTH_BETRAYED;
                agentB.games++;
                if (agentA_session != null)
                {
                   try
                   {
-                     agentA_session.getBasicRemote().sendText("game_outcome:complete;both betray, score = " + ((float)agentA.outcome / (float)agentA.games) + ", (" + agentB.outcome + "/" + agentB.games + ")");
+                     agentA_session.getBasicRemote().sendText("game_outcome:complete;both betrayed, score = " + ((float)agentA.outcome / (float)agentA.games) + ", (" + agentA.outcome + "/" + agentA.games + ")");
                   }
                   catch (IOException e) {}
                }
@@ -516,7 +516,7 @@ public class WSServer
                {
                   try
                   {
-                     agentB_session.getBasicRemote().sendText("game_outcome:complete;both betray, score = " + ((float)agentB.outcome / (float)agentB.games) + ", (" + agentA.outcome + "/" + agentA.games + ")");
+                     agentB_session.getBasicRemote().sendText("game_outcome:complete;both betrayed, score = " + ((float)agentB.outcome / (float)agentB.games) + ", (" + agentB.outcome + "/" + agentB.games + ")");
                   }
                   catch (IOException e) {}
                }
