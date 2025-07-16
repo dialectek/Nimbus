@@ -33,11 +33,20 @@ public class WSServer
       logger.info("Message from client: " + msg);
       try
       {
-         if ((msg != null) && msg.contains(":"))
+         String op   = "";
+         String args = "";
+         if ((msg != null))
          {
-            String[] parts = msg.split(":");
-            String op   = parts[0];
-            String args = parts[1];
+            if (msg.contains(":"))
+            {
+               String[] parts = msg.split(":");
+               op             = parts[0];
+               args           = parts[1];
+            }
+            else
+            {
+               op = msg;
+            }
             if (op.equals("request_name"))
             {
                String id   = args;
@@ -62,7 +71,7 @@ public class WSServer
                String from_name = NimbusServer.connections.getNameBySession(session);
                if (from_name != null)
                {
-                  parts = args.split(";");
+                  String[] parts = args.split(";");
                   if ((parts != null) && (parts.length == 2))
                   {
                      String  to_name    = parts[0];
@@ -99,52 +108,44 @@ public class WSServer
                String agentA = NimbusServer.connections.getNameBySession(session);
                if (agentA != null)
                {
-                  parts = args.split(";");
-                  if ((parts != null) && (parts.length == 1))
+                  String agentB = args;
+                  if (!agentA.equals(agentB))
                   {
-                     String agentB = parts[0];
-                     if (!agentA.equals(agentB))
+                     Session agentB_session = NimbusServer.connections.getSessionByName(agentB);
+                     if (agentB_session != null)
                      {
-                        Session agentB_session = NimbusServer.connections.getSessionByName(agentB);
-                        if (agentB_session != null)
+                        if (NimbusServer.games.get(agentA) != null)
                         {
-                           if (NimbusServer.games.get(agentA) != null)
-                           {
-                              session.getBasicRemote().sendText("game_invite:error;game in progress");
-                           }
-                           else if (NimbusServer.games.get(agentB) != null)
-                           {
-                              session.getBasicRemote().sendText("game_invite:error;agent " + agentB + " in another game");
-                           }
-                           else
-                           {
-                              try
-                              {
-                                 agentB_session.getBasicRemote().sendText("game_invite:" + agentA);
-                                 PrisonersDilemmaGame game = new PrisonersDilemmaGame(agentA, agentB);
-                                 NimbusServer.games.put(agentA, game);
-                                 NimbusServer.games.put(agentB, game);
-                                 session.getBasicRemote().sendText("game_invite:sent;invite sent to " + agentB);
-                              }
-                              catch (IOException e)
-                              {
-                                 session.getBasicRemote().sendText("game_invite:error;cannot invite " + agentB);
-                              }
-                           }
+                           session.getBasicRemote().sendText("game_invite:error;game in progress for " + agentA);
+                        }
+                        else if (NimbusServer.games.get(agentB) != null)
+                        {
+                           session.getBasicRemote().sendText("game_invite:error;game in progress for " + agentB);
                         }
                         else
                         {
-                           session.getBasicRemote().sendText("game_invite:error;unknown agent " + agentB);
+                           try
+                           {
+                              agentB_session.getBasicRemote().sendText("game_invite:request;" + agentA);
+                              PrisonersDilemmaGame game = new PrisonersDilemmaGame(agentA, agentB);
+                              NimbusServer.games.put(agentA, game);
+                              NimbusServer.games.put(agentB, game);
+                              session.getBasicRemote().sendText("game_invite:confirm;invite sent to " + agentB);
+                           }
+                           catch (IOException e)
+                           {
+                              session.getBasicRemote().sendText("game_invite:error;cannot invite " + agentB);
+                           }
                         }
                      }
                      else
                      {
-                        session.getBasicRemote().sendText("game_invite:error;invalid agent " + agentB);
+                        session.getBasicRemote().sendText("game_invite:error;unknown agent " + agentB);
                      }
                   }
                   else
                   {
-                     session.getBasicRemote().sendText("game_invite:error;invalid message " + msg);
+                     session.getBasicRemote().sendText("game_invite:error;invalid agent " + agentB);
                   }
                }
                else
@@ -157,52 +158,140 @@ public class WSServer
                String agentB = NimbusServer.connections.getNameBySession(session);
                if (agentB != null)
                {
-                  parts = args.split(";");
-                  if ((parts != null) && (parts.length == 1))
+                  String               agentA = args;
+                  PrisonersDilemmaGame game   = NimbusServer.games.get(agentB);
+                  if (game != null)
                   {
-                     PrisonersDilemmaGame game = NimbusServer.games.get(agentB);
-                     if (game != null)
+                     if ((game.state == PrisonersDilemmaGame.INVITE) &&
+                         game.agentA.equals(agentA) && game.agentB.equals(agentB))
                      {
-                        if ((game.state == PrisonersDilemmaGame.INVITE) && game.agentB.equals(agentB))
+                        Session agentA_session = NimbusServer.connections.getSessionByName(agentA);
+                        if (agentA_session != null)
                         {
-                           String  agentA         = game.agentA;
-                           Session agentA_session = NimbusServer.connections.getSessionByName(agentA);
-                           if (agentA_session != null)
+                           try
                            {
-                              try
-                              {
-                                 agentA_session.getBasicRemote().sendText("game_accept:" + agentB);
-                                 game.state = PrisonersDilemmaGame.ACTIVE;
-                                 session.getBasicRemote().sendText("game_accept:sent;accept sent to " + agentA);
-                              }
-                              catch (IOException e)
-                              {
-                                 session.getBasicRemote().sendText("game_invite:error;cannot invite " + agentB);
-                              }
+                              agentA_session.getBasicRemote().sendText("game_accept:confirm;" + agentB);
+                              game.state = PrisonersDilemmaGame.ACTIVE;
+                              session.getBasicRemote().sendText("game_accept:confirm;accept sent to " + agentA);
                            }
-                           else
+                           catch (IOException e)
                            {
-                              session.getBasicRemote().sendText("game_invite:error;unknown agent " + agentA);
+                              session.getBasicRemote().sendText("game_accept:error;cannot invite " + agentB);
                            }
                         }
                         else
                         {
-                           session.getBasicRemote().sendText("game_accept:error;invalid game");
+                           session.getBasicRemote().sendText("game_accept:error;unknown agent " + agentA);
                         }
                      }
                      else
                      {
-                        session.getBasicRemote().sendText("game_accept:error;game not found");
+                        session.getBasicRemote().sendText("game_accept:error;invalid game");
                      }
                   }
                   else
                   {
-                     session.getBasicRemote().sendText("game_invite:error;invalid message " + msg);
+                     session.getBasicRemote().sendText("game_accept:error;game not found");
                   }
                }
                else
                {
-                  session.getBasicRemote().sendText("game_accept:error;unknown origin name");
+                  session.getBasicRemote().sendText("game_invite:error;invalid message " + msg);
+               }
+            }
+            else if (op.equals("game_action"))
+            {
+               String agent = NimbusServer.connections.getNameBySession(session);
+               if (agent != null)
+               {
+                  String action = args;
+                  if (action.equals("cooperate") || action.equals("betray"))
+                  {
+                     PrisonersDilemmaGame game = NimbusServer.games.get(agent);
+                     if (game != null)
+                     {
+                        if (game.state == PrisonersDilemmaGame.ACTIVE)
+                        {
+                           if (game.agentA.equals(agent) || game.agentB.equals(agent))
+                           {
+                              if (game.agentA.equals(agent))
+                              {
+                                 if (game.agentAaction == PrisonersDilemmaGame.PENDING)
+                                 {
+                                    if (action.equals("cooperate"))
+                                    {
+                                       game.agentAaction = PrisonersDilemmaGame.COOPERATE;
+                                    }
+                                    else
+                                    {
+                                       game.agentAaction = PrisonersDilemmaGame.BETRAY;
+                                    }
+                                    if ((game.agentAaction != PrisonersDilemmaGame.PENDING) &&
+                                        (game.agentBaction != PrisonersDilemmaGame.PENDING))
+                                    {
+                                       finishGame(game);
+                                    }
+                                    else
+                                    {
+                                       session.getBasicRemote().sendText("game_action:confirm;" + action);
+                                    }
+                                 }
+                                 else
+                                 {
+                                    session.getBasicRemote().sendText("game_action:error;duplicate action");
+                                 }
+                              }
+                              else
+                              {
+                                 if (game.agentBaction == PrisonersDilemmaGame.PENDING)
+                                 {
+                                    if (action.equals("cooperate"))
+                                    {
+                                       game.agentBaction = PrisonersDilemmaGame.COOPERATE;
+                                    }
+                                    else
+                                    {
+                                       game.agentBaction = PrisonersDilemmaGame.BETRAY;
+                                    }
+                                    if ((game.agentAaction != PrisonersDilemmaGame.PENDING) &&
+                                        (game.agentBaction != PrisonersDilemmaGame.PENDING))
+                                    {
+                                       finishGame(game);
+                                    }
+                                    else
+                                    {
+                                       session.getBasicRemote().sendText("game_action:confirm;" + action);
+                                    }
+                                 }
+                                 else
+                                 {
+                                    session.getBasicRemote().sendText("game_action:error;duplicate action");
+                                 }
+                              }
+                           }
+                           else
+                           {
+                              session.getBasicRemote().sendText("game_action:error;invalid agent " + agent);
+                           }
+                        }
+                        else
+                        {
+                           session.getBasicRemote().sendText("game_action:error;game not active");
+                        }
+                     }
+                     else
+                     {
+                        session.getBasicRemote().sendText("game_action:error;game not found");
+                     }
+                  }
+                  else
+                  {
+                     session.getBasicRemote().sendText("game_action:error;invalid action");
+                  }
+               }
+               else
+               {
+                  session.getBasicRemote().sendText("game_action:error;unknown origin name");
                }
             }
             else if (op.equals("game_quit"))
@@ -230,11 +319,11 @@ public class WSServer
                         }
                         else
                         {
-                            session.getBasicRemote().sendText("game_quit:error;unknown agent " + agentA);                        	
+                           session.getBasicRemote().sendText("game_quit:error;unknown agent " + agentA);
                         }
-                        NimbusServer.games.remove(agentA);                        
+                        NimbusServer.games.remove(agentA);
                         String  agentB         = game.agentB;
-                        Session agentB_session = NimbusServer.connections.getSessionByName(agentA);
+                        Session agentB_session = NimbusServer.connections.getSessionByName(agentB);
                         if (agentB_session != null)
                         {
                            try
@@ -248,7 +337,7 @@ public class WSServer
                         }
                         else
                         {
-                            session.getBasicRemote().sendText("game_quit:error;unknown agent " + agentB);                        	
+                           session.getBasicRemote().sendText("game_quit:error;unknown agent " + agentB);
                         }
                         NimbusServer.games.remove(agentB);
                      }
@@ -281,6 +370,161 @@ public class WSServer
       {
          logger.info(e.getMessage());
       }
+   }
+
+
+   // Finish game.
+   private void finishGame(PrisonersDilemmaGame game)
+   {
+      PrisonersDilemmaAgent agentA         = NimbusServer.agents.get(game.agentA);
+      PrisonersDilemmaAgent agentB         = NimbusServer.agents.get(game.agentB);
+      Session               agentA_session = NimbusServer.connections.getSessionByName(game.agentA);
+      Session               agentB_session = NimbusServer.connections.getSessionByName(game.agentB);
+
+      if ((agentA == null) || (agentB == null))
+      {
+         if (agentA_session != null)
+         {
+            try
+            {
+               if (agentA == null)
+               {
+                  agentA_session.getBasicRemote().sendText("game_outcome:error;agent not found " + game.agentA);
+               }
+            }
+            catch (IOException e) {}
+            try
+            {
+               if (agentB == null)
+               {
+                  agentA_session.getBasicRemote().sendText("game_outcome:error;agent not found " + game.agentB);
+               }
+            }
+            catch (IOException e) {}
+         }
+         if (agentB_session != null)
+         {
+            try
+            {
+               if (agentA == null)
+               {
+                  agentB_session.getBasicRemote().sendText("game_outcome:error;agent not found " + game.agentA);
+               }
+            }
+            catch (IOException e) {}
+            try
+            {
+               if (agentB == null)
+               {
+                  agentB_session.getBasicRemote().sendText("game_outcome:error;agent not found " + game.agentB);
+               }
+            }
+            catch (IOException e) {}
+         }
+      }
+      else
+      {
+         if (game.agentAaction == PrisonersDilemmaGame.COOPERATE)
+         {
+            if (game.agentBaction == PrisonersDilemmaGame.COOPERATE)
+            {
+               agentA.outcome += PrisonersDilemmaGame.BOTH_COOPERATE;
+               agentA.games++;
+               agentB.outcome += PrisonersDilemmaGame.BOTH_COOPERATE;
+               agentB.games++;
+               if (agentA_session != null)
+               {
+                  try
+                  {
+                     agentA_session.getBasicRemote().sendText("game_outcome:complete;both cooperate, score = " + ((float)agentA.outcome / (float)agentA.games) + ", (" + agentA.outcome + "/" + agentA.games + ")");
+                  }
+                  catch (IOException e) {}
+               }
+               if (agentB_session != null)
+               {
+                  try
+                  {
+                     agentB_session.getBasicRemote().sendText("game_outcome:complete;both cooperate, score = " + ((float)agentB.outcome / (float)agentB.games) + ", (" + agentB.outcome + "/" + agentB.games + ")");
+                  }
+                  catch (IOException e) {}
+               }
+            }
+            else
+            {
+               agentA.outcome += PrisonersDilemmaGame.BETRAYED;
+               agentA.games++;
+               agentB.outcome += PrisonersDilemmaGame.BETRAY;
+               agentB.games++;
+               if (agentA_session != null)
+               {
+                  try
+                  {
+                     agentA_session.getBasicRemote().sendText("game_outcome:complete;betrayed, score = " + ((float)agentA.outcome / (float)agentA.games) + ", (" + agentB.outcome + "/" + agentB.games + ")");
+                  }
+                  catch (IOException e) {}
+               }
+               if (agentB_session != null)
+               {
+                  try
+                  {
+                     agentB_session.getBasicRemote().sendText("game_outcome:complete;betray, score = " + ((float)agentB.outcome / (float)agentB.games) + ", (" + agentA.outcome + "/" + agentA.games + ")");
+                  }
+                  catch (IOException e) {}
+               }
+            }
+         }
+         else
+         {
+            if (game.agentBaction == PrisonersDilemmaGame.COOPERATE)
+            {
+               agentA.outcome += PrisonersDilemmaGame.BETRAY;
+               agentA.games++;
+               agentB.outcome += PrisonersDilemmaGame.BETRAYED;
+               agentB.games++;
+               if (agentA_session != null)
+               {
+                  try
+                  {
+                     agentA_session.getBasicRemote().sendText("game_outcome:complete;betray, score = " + ((float)agentA.outcome / (float)agentA.games) + ", (" + agentA.outcome + "/" + agentA.games + ")");
+                  }
+                  catch (IOException e) {}
+               }
+               if (agentB_session != null)
+               {
+                  try
+                  {
+                     agentB_session.getBasicRemote().sendText("game_outcome:complete;betrayed, score = " + ((float)agentB.outcome / (float)agentB.games) + ", (" + agentB.outcome + "/" + agentB.games + ")");
+                  }
+                  catch (IOException e) {}
+               }
+            }
+            else
+            {
+               agentA.outcome += PrisonersDilemmaGame.BOTH_BETRAY;
+               agentA.games++;
+               agentB.outcome += PrisonersDilemmaGame.BOTH_BETRAY;
+               agentB.games++;
+               if (agentA_session != null)
+               {
+                  try
+                  {
+                     agentA_session.getBasicRemote().sendText("game_outcome:complete;both betray, score = " + ((float)agentA.outcome / (float)agentA.games) + ", (" + agentB.outcome + "/" + agentB.games + ")");
+                  }
+                  catch (IOException e) {}
+               }
+               if (agentB_session != null)
+               {
+                  try
+                  {
+                     agentB_session.getBasicRemote().sendText("game_outcome:complete;both betray, score = " + ((float)agentB.outcome / (float)agentB.games) + ", (" + agentA.outcome + "/" + agentA.games + ")");
+                  }
+                  catch (IOException e) {}
+               }
+            }
+         }
+      }
+      NimbusServer.games.remove(game.agentA);
+      NimbusServer.games.remove(game.agentB);
    }
 
 

@@ -22,7 +22,7 @@ public class PrisonersDilemmaGame
 
    // Agent outcomes.
    public static int BOTH_COOPERATE = 3;
-   public static int BOTH_BETRAYED  = 1;
+   public static int BOTH_BETRAY    = 1;
    public static int BETRAYED       = 0;
    public static int BETRAYER       = 5;
    public int        agentAoutcome;
@@ -91,7 +91,7 @@ public class PrisonersDilemmaGame
                }
                else
                {
-                  agentAoutcome = agentBoutcome = BOTH_BETRAYED;
+                  agentAoutcome = agentBoutcome = BOTH_BETRAY;
                   agentBoutcome = BETRAYER;
                }
             }
