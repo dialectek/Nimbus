@@ -10,6 +10,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.Map;
 import java.util.logging.Logger;
 
 @ServerEndpoint(value = "/server")
@@ -353,7 +354,7 @@ public class WSServer
                }
                else
                {
-                  session.getBasicRemote().sendText("game_quit:error;unknnown origin name");
+                  session.getBasicRemote().sendText("game_quit:error;unknown origin name");
                }
             }
             else if (op.equals("agent_score"))
@@ -380,8 +381,51 @@ public class WSServer
                }
                else
                {
-                  session.getBasicRemote().sendText("agent_score:error;unknnown agent name");
+                  session.getBasicRemote().sendText("agent_score:error;unknown agent name");
                }
+            }
+            else if (op.equals("agent_clear"))
+            {
+               String name = NimbusServer.connections.getNameBySession(session);
+               if (name != null)
+               {
+                  PrisonersDilemmaAgent agent = NimbusServer.agents.get(name);
+                  if (agent != null)
+                  {
+                     agent.outcomes = 0;
+                     agent.games    = 0;
+                     session.getBasicRemote().sendText("agent_clear:score;0.0(0/0)");
+                  }
+                  else
+                  {
+                     session.getBasicRemote().sendText("agent_clear:error;agent not found");
+                  }
+               }
+               else
+               {
+                  session.getBasicRemote().sendText("agent_clear:error;unknown agent name");
+               }
+            }
+            else if (op.equals("agent_scores"))
+            {
+               String agent_scores = "";
+               for (Map.Entry<String, PrisonersDilemmaAgent> entry : NimbusServer.agents.entrySet())
+               {
+                  if (agent_scores.length() > 0)
+                  {
+                     agent_scores += ";";
+                  }
+                  PrisonersDilemmaAgent agent = entry.getValue();
+                  if (agent.games > 0)
+                  {
+                     agent_scores += agent.name + "," + ((float)agent.outcomes / (float)agent.games) + "(" + agent.outcomes + "/" + agent.games + ")";
+                  }
+                  else
+                  {
+                     agent_scores += agent.name + ",0.0(0/0)";
+                  }
+               }
+               session.getBasicRemote().sendText("agent_scores:scores;" + agent_scores);
             }
             else
             {

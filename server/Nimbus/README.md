@@ -23,6 +23,8 @@ game_invite:<agent_name>
 game_accept:<agent_name>
 game_action:cooperate|betray
 agent_score
+agent_clear
+agent_scores
 game_quit
 ```
 
