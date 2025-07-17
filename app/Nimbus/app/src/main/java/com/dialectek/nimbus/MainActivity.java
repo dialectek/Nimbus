@@ -38,10 +38,12 @@ import android.os.Looper;
 import android.os.ParcelUuid;
 import android.provider.Settings;
 import android.text.Spannable;
+import android.text.SpannableString;
 import android.text.Spanned;
 import android.text.method.LinkMovementMethod;
 import android.text.style.ClickableSpan;
 import android.text.style.ForegroundColorSpan;
+import android.text.style.UnderlineSpan;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -136,6 +138,26 @@ public class MainActivity extends AppCompatActivity
 
       setContentView(R.layout.activity_main);
       mNameText       = findViewById(R.id.name_text);
+      mNameText.setOnClickListener(new View.OnClickListener() {
+           @Override
+           public void onClick(View v) {
+               if (mName != null) {
+                   AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(MainActivity.this);
+                   alertDialogBuilder.setTitle("Enter command");
+                   final EditText input = new EditText(MainActivity.this);
+                   alertDialogBuilder.setView(input);
+                   alertDialogBuilder.setPositiveButton("OK", (dialog, which) -> {
+                       String inputText = input.getText().toString();
+                       mClient.send(inputText);
+                   });
+                   alertDialogBuilder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
+                   AlertDialog alertDialog = alertDialogBuilder.create();
+                   alertDialog.show();
+               } else {
+                   Toast.makeText(getBaseContext(), "Cannot enter command: local name unavailable", Toast.LENGTH_SHORT).show();
+               }
+           }
+      });
       mID = Settings.Secure.getString(
               getApplicationContext().getContentResolver(),
               Settings.Secure.ANDROID_ID);
@@ -739,18 +761,21 @@ public class MainActivity extends AppCompatActivity
          @Override
          public void onOpen(ServerHandshake serverHandshake) {
             if (mID != null) {
-               send("id_to_name:" + mID);
+               send("request_name:" + mID);
             }
             toastMessage("Connected to server");
          }
 
          @Override
          public void onMessage(String message) {
-            if (message.startsWith("id_to_name:")) {
-               mName = message.split(":")[1];
-               mNameText.setText(mName);
+            if (message.startsWith("request_name:")) {
+               mName = message.split(":")[1].split(";")[1];
+               SpannableString spannableString = new SpannableString(mName);
+               UnderlineSpan underLineSpan = new UnderlineSpan();
+               spannableString.setSpan(underLineSpan, 0, spannableString.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+               mNameText.setText(spannableString);
             }
-            toastMessage("Message from server: " + message);
+            toastMessage(message);
          }
 
          @Override
